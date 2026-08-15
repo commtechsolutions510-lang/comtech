@@ -1,0 +1,40 @@
+import type { Location } from '../types';
+
+export const locations: Location[] = [
+  {
+    id: 'head-office',
+    name: 'Commtech Solutions Head Office',
+    slug: 'head-office',
+    description: 'The main headquarters of Commtech Solutions.',
+    address: 'Haatso, Accra, Ghana',
+    phone: '+233 XXX XXX XXXX',
+    hours: 'Monday – Friday: 8:00 AM – 6:00 PM\nSaturday: 9:00 AM – 4:00 PM',
+    mapUrl: 'https://maps.google.com/?q=Haatso+Accra+Ghana',
+    image: '/images/locations/head-office.jpg',
+    type: 'head-office',
+  },
+  {
+    id: 'kwabenya-retail',
+    name: 'Kwabenya Roundabout Retail Outlet',
+    slug: 'kwabenya-retail',
+    description: 'Retail outlet located at Kwabenya Roundabout.',
+    address: 'Kwabenya Roundabout, Accra, Ghana',
+    phone: '+233 XXX XXX XXXX',
+    hours: 'Monday – Saturday: 8:00 AM – 7:00 PM',
+    mapUrl: 'https://maps.google.com/?q=Kwabenya+Roundabout+Accra+Ghana',
+    image: '/images/locations/kwabenya-retail.jpg',
+    type: 'retail',
+  },
+  {
+    id: 'haatso-retail',
+    name: 'Haatso Retail Outlet',
+    slug: 'haatso-retail',
+    description: 'Convenient retail outlet in Haatso.',
+    address: 'Haatso, Accra, Ghana',
+    phone: '+233 XXX XXX XXXX',
+    hours: 'Monday – Saturday: 8:00 AM – 7:00 PM',
+    mapUrl: 'https://maps.google.com/?q=Haatso+Accra+Ghana',
+    image: '/images/locations/haatso-retail.jpg',
+    type: 'retail',
+  },
+];

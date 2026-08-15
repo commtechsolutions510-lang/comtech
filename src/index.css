@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #0B1F3A;
+  --color-primary-50: #eef5ff;
+  --color-primary-100: #dfeeff;
+  --color-primary-200: #bfd9ff;
+  --color-primary-300: #93bbff;
+  --color-primary-400: #5d90ff;
+  --color-primary-500: #2957d6;
+  --color-primary-600: #1f45ae;
+  --color-primary-700: #1a377d;
+  --color-primary-800: #132956;
+  --color-primary-900: #0B1F3A;
+
+  --color-commtech-50: #eef5ff;
+  --color-commtech-100: #dfeeff;
+  --color-commtech-200: #bfd9ff;
+  --color-commtech-300: #93bbff;
+  --color-commtech-400: #5d90ff;
+  --color-commtech-500: #2957d6;
+  --color-commtech-600: #1f45ae;
+  --color-commtech-700: #1a377d;
+  --color-commtech-800: #132956;
+  --color-commtech-900: #0B1F3A;
+  --color-commtech-950: #08182d;
+
+  --color-accent-50: #edf5ff;
+  --color-accent-100: #dfeeff;
+  --color-accent-200: #bfd9ff;
+  --color-accent-300: #93bbff;
+  --color-accent-400: #5d90ff;
+  --color-accent-500: #1677FF;
+  --color-accent-600: #0d62e6;
+  --color-accent-700: #0a4db6;
+  --color-accent-800: #0a3c8f;
+  --color-accent-900: #0b2d63;
+
+  --color-brand-background: #FFFFFF;
+  --color-brand-muted: #F5F7FA;
+  --color-brand-text: #172033;
+  --color-brand-success: #16A34A;
+  --color-brand-error: #DC2626;
+
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  --font-heading: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
+
+body {
+  @apply antialiased bg-white text-[#172033];
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+main {
+  width: 100%;
+  overflow-x: hidden;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+::selection {
+  background: rgba(22, 119, 255, 0.18);
+  color: #0B1F3A;
+}
+
+@media (max-width: 767px) {
+  body {
+    font-size: 15px;
+  }
+
+  section {
+    scroll-margin-top: 88px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
