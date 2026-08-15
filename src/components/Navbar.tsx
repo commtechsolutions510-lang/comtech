@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ShoppingCart } from 'lucide-react';
+import { Menu, X, ShoppingCart, User } from 'lucide-react';
+import { useCart } from '../context/CartContext';
+import { CartSidebar } from './cart/CartSidebar';
 import { company } from '../data/company';
 
 const navLinks = [
@@ -17,6 +19,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { items, openCart, closeCart, isCartOpen } = useCart();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -27,6 +30,8 @@ export function Navbar() {
   useEffect(() => {
     setIsOpen(false);
   }, [location]);
+
+  const cartCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   return (
     <header className={`sticky top-0 z-50 transition-shadow duration-300 ${scrolled ? 'shadow-md bg-[#0B1F3A]/95 backdrop-blur-sm' : 'bg-[#0B1F3A] shadow-sm'}`}>
@@ -52,6 +57,25 @@ export function Navbar() {
                 {link.name}
               </Link>
             ))}
+            <button
+              onClick={openCart}
+              aria-label="Shopping cart"
+              className="relative flex h-11 w-11 items-center justify-center rounded-lg text-white/90 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#1677FF]"
+            >
+              <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[#1677FF] text-white text-xs font-bold">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
+            </button>
+            <Link
+              to="/account"
+              aria-label="Account"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-white/90 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#1677FF]"
+            >
+              <User className="h-5 w-5" />
+            </Link>
             <a
               href={`https://wa.me/${company.whatsapp.replace(/[^0-9]/g, '')}`}
               className="inline-flex items-center px-5 py-2.5 text-sm font-semibold text-white bg-[#1677FF] rounded-lg hover:bg-[#0f6ae7] transition-colors"
@@ -63,12 +87,24 @@ export function Navbar() {
           </nav>
 
           <div className="flex items-center gap-2 md:hidden">
-            <Link
-              to="/products"
-              aria-label="View products"
-              className="flex h-11 w-11 items-center justify-center rounded-lg text-white/90 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#1677FF]"
+            <button
+              onClick={openCart}
+              aria-label="Shopping cart"
+              className="relative flex h-11 w-11 items-center justify-center rounded-lg text-white/90 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#1677FF]"
             >
               <ShoppingCart className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center rounded-full bg-[#1677FF] text-white text-xs font-bold">
+                  {cartCount > 9 ? '9+' : cartCount}
+                </span>
+              )}
+            </button>
+            <Link
+              to="/account"
+              aria-label="Account"
+              className="flex h-11 w-11 items-center justify-center rounded-lg text-white/90 hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-[#1677FF]"
+            >
+              <User className="h-5 w-5" />
             </Link>
             <button
               onClick={() => setIsOpen(!isOpen)}
@@ -119,6 +155,8 @@ export function Navbar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      <CartSidebar isOpen={isCartOpen} onClose={closeCart} />
     </header>
   );
 }

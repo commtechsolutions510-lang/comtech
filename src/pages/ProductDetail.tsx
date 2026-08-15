@@ -1,16 +1,46 @@
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
-import { SectionHeading } from '../components/SectionHeading';
+import { ArrowLeft, Minus, Plus, ShoppingCart, MessageCircle } from 'lucide-react';
 import { ProductCard } from '../components/ProductCard';
-import { WhatsAppButton } from '../components/WhatsAppButton';
 import { Button } from '../components/Button';
-import { products } from '../data/products';
+import { WhatsAppButton } from '../components/WhatsAppButton';
+import { api } from '../lib/api';
+import type { Product } from '../types';
 import { company } from '../data/company';
 
 export function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
-  const product = products.find((p) => p.slug === slug);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState<string>('');
+
+  useEffect(() => {
+    if (!slug) return;
+    setIsLoading(true);
+    api.get(`/products/${slug}`)
+      .then((data) => {
+        setProduct(data);
+        setSelectedVariant(data.variants?.[0]?.id || '');
+        return api.get(`/products?category=${data.categorySlug}&limit=4`);
+      })
+      .then((data) => {
+        const related = data.products.filter((p: Product) => p.slug !== slug).slice(0, 3);
+        setRelatedProducts(related);
+      })
+      .catch(() => setRelatedProducts([]))
+      .finally(() => setIsLoading(false));
+  }, [slug]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-white min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-[#1677FF] border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -22,13 +52,21 @@ export function ProductDetail() {
     );
   }
 
-  const relatedProducts = products
-    .filter((p) => p.categorySlug === product.categorySlug && p.id !== product.id)
-    .slice(0, 3);
+  const basePrice = product.basePrice ?? 0;
+  const salePrice = product.salePrice ?? 0;
+  const stockQuantity = product.stockQuantity ?? 0;
+  const hasVariants = product.variants && product.variants.length > 0;
+  const isOutOfStock = stockQuantity <= 0;
+  const images = product.images && product.images.length > 0 ? product.images : [{ url: product.image }];
+
+  const handleAddToCart = () => {
+    const variantId = hasVariants ? selectedVariant : undefined;
+    const event = new CustomEvent('add-to-cart', { detail: { productId: product.id, variantId } });
+    window.dispatchEvent(event);
+  };
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Hero */}
       <section className="bg-[#F5F7FA] border-b border-[#E5E7EB]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <Link to="/products" className="inline-flex items-center text-sm text-[#1677FF] hover:text-[#0f6ae7] mb-6">
@@ -46,7 +84,6 @@ export function ProductDetail() {
         </div>
       </section>
 
-      {/* Product Details */}
       <section className="py-12 md:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
@@ -57,75 +94,138 @@ export function ProductDetail() {
               className="relative aspect-square rounded-2xl overflow-hidden bg-gray-50 shadow-sm"
             >
               <img
-                src={product.image}
+                src={images[0]?.url || product.image}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />
+              {salePrice > 0 && (
+                <span className="absolute top-4 left-4 px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full">
+                  SALE
+                </span>
+              )}
+              {isOutOfStock && (
+                <span className="absolute top-4 right-4 px-3 py-1 bg-gray-800 text-white text-xs font-bold rounded-full">
+                  OUT OF STOCK
+                </span>
+              )}
             </motion.div>
+
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.6 }}
               className="flex flex-col"
             >
-              <h2 className="text-2xl font-bold text-gray-900">{product.name}</h2>
-              <p className="mt-2 text-sm text-commtech-600 font-medium">{product.category}</p>
+              <div className="flex items-baseline gap-3">
+                <h2 className="text-2xl font-bold text-gray-900">{product.name}</h2>
+                {salePrice > 0 && (
+                  <span className="text-lg font-bold text-red-500">GH₵{salePrice.toFixed(2)}</span>
+                )}
+              </div>
+              {salePrice > 0 && (
+                <p className="text-sm text-gray-400 line-through">GH₵{basePrice.toFixed(2)}</p>
+              )}
+              {salePrice <= 0 && basePrice > 0 && (
+                <p className="text-xl font-bold text-[#1677FF] mt-1">GH₵{basePrice.toFixed(2)}</p>
+              )}
+
+              <p className="mt-4 text-sm text-gray-500">
+                {isOutOfStock ? (
+                  <span className="text-red-500 font-medium">Out of Stock</span>
+                ) : (
+                  <span className="text-green-600 font-medium">In Stock ({stockQuantity} available)</span>
+                )}
+              </p>
+
               <p className="mt-6 text-gray-600 leading-relaxed">{product.description}</p>
 
-              {product.variants && product.variants.length > 0 && (
+              {hasVariants && (
                 <div className="mt-8">
-                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Available Options</h3>
+                  <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Select Option</h3>
                   <div className="flex flex-wrap gap-2">
-                    {Array.from(new Set(product.variants.map((v) => v.label))).map((label) => (
-                      <span key={label} className="px-3 py-1.5 bg-gray-50 text-gray-700 text-sm rounded-lg border border-gray-200">
-                        {label}: {product.variants!.filter((v) => v.label === label).map((v) => v.value).join(', ')}
-                      </span>
+                    {product.variants!.map((variant) => (
+                      <button
+                        key={variant.id}
+                        onClick={() => variant.id && setSelectedVariant(variant.id)}
+                        className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                          selectedVariant === variant.id
+                            ? 'border-[#1677FF] bg-[#F3F8FF] text-[#0B1F3A]'
+                            : 'border-[#E5E7EB] text-[#172033] hover:border-gray-300'
+                        }`}
+                      >
+                        {variant.value}
+                        {variant.price && <span className="ml-1 text-xs text-gray-500">(+GH₵{variant.price.toFixed(2)})</span>}
+                      </button>
                     ))}
                   </div>
                 </div>
               )}
 
+              <div className="mt-8">
+                <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide mb-3">Quantity</h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center border border-[#E5E7EB] rounded-lg">
+                    <button
+                      onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                      className="p-2.5 hover:bg-[#F5F7FA] transition-colors"
+                      aria-label="Decrease quantity"
+                    >
+                      <Minus className="w-4 h-4 text-[#172033]" />
+                    </button>
+                    <span className="px-4 text-sm font-medium text-[#172033]">{quantity}</span>
+                    <button
+                      onClick={() => setQuantity((q) => Math.min(stockQuantity || 99, q + 1))}
+                      disabled={quantity >= (stockQuantity || 99)}
+                      className="p-2.5 hover:bg-[#F5F7FA] transition-colors disabled:opacity-50"
+                      aria-label="Increase quantity"
+                    >
+                      <Plus className="w-4 h-4 text-[#172033]" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
+                <Button
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                  size="lg"
+                  className="flex-1"
+                >
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                </Button>
                 <WhatsAppButton
                   phone={company.whatsapp}
                   message={`Hello Commtech Solutions, I am interested in the ${product.name}. Please provide more information and availability.`}
                   size="lg"
+                  className="flex-1 justify-center"
                 >
-                  Enquire About This Product
+                  <MessageCircle className="w-5 h-5 mr-2" />
+                  Enquire on WhatsApp
                 </WhatsAppButton>
-                <Button to="/products" variant="outline" size="lg">
-                  Back to Products
-                </Button>
               </div>
             </motion.div>
           </div>
         </div>
       </section>
 
-      {/* Related Products */}
       {relatedProducts.length > 0 && (
         <section className="py-12 md:py-16 bg-gray-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <SectionHeading
-              label="Related"
-              title="You May Also Like"
-              subtitle="Other products in the same category."
-            />
-            <div className="mt-8 overflow-x-auto pb-2">
-              <div className="flex gap-4 md:gap-6 min-w-max snap-x snap-mandatory">
-                {relatedProducts.map((p, index) => (
-                  <motion.div
-                    key={p.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: index * 0.1, duration: 0.5 }}
-                    className="w-[85vw] max-w-[320px] sm:w-[300px] snap-start shrink-0"
-                  >
-                    <ProductCard product={p} />
-                  </motion.div>
-                ))}
-              </div>
+            <h2 className="text-2xl font-bold text-[#0B1F3A] mb-8">You May Also Like</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {relatedProducts.map((p, index) => (
+                <motion.div
+                  key={p.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1, duration: 0.5 }}
+                >
+                  <ProductCard product={p} />
+                </motion.div>
+              ))}
             </div>
           </div>
         </section>
