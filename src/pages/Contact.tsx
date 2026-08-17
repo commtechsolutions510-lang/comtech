@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { SectionHeading } from '../components/SectionHeading';
 import { ContactForm } from '../components/ContactForm';
 import { WhatsAppButton } from '../components/WhatsAppButton';
+import { ImageWithFallback } from '../components/ImageWithFallback';
 import { company } from '../data/company';
 
 export function Contact() {
@@ -79,6 +80,15 @@ export function Contact() {
                     Chat on WhatsApp
                   </WhatsAppButton>
                 </div>
+              </div>
+
+              <div className="mt-8 relative aspect-[4/3] rounded-xl overflow-hidden shadow-sm">
+                <ImageWithFallback
+                  src="/images/company/whatsapp-5.jpeg"
+                  alt="Commtech Solutions contact"
+                  className="w-full h-full object-cover"
+                  fallback="/images/company/placeholder.jpg"
+                />
               </div>
             </div>
           </div>

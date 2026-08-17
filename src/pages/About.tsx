@@ -56,8 +56,8 @@ export function About() {
             </motion.div>
             <motion.div initial={{ opacity: 0, x: 20 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }} className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg bg-[#F5F7FA]">
               <ImageWithFallback
-                src="/images/company/ceo.jpg"
-                alt="Commtech Solutions CEO"
+                src="/images/company/whatsapp-3.jpeg"
+                alt="Commtech Solutions team"
                 className="w-full h-full object-cover"
                 fallback="/images/company/placeholder.jpg"
               />
@@ -72,7 +72,7 @@ export function About() {
             <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-center">
               <div className="overflow-hidden rounded-xl bg-[#F5F7FA] aspect-square">
                 <ImageWithFallback
-                  src="/images/company/team.jpg"
+                  src="/images/company/whatsapp-4.jpeg"
                   alt="Commtech Solutions team"
                   className="w-full h-full object-cover"
                   fallback="/images/company/placeholder.jpg"
@@ -132,12 +132,14 @@ export function About() {
           <div className="mt-12">
             <ImageGallery
               images={[
-                { src: '/images/company/ceo.jpg', alt: 'Commtech Solutions CEO' },
-                { src: '/images/company/team.jpg', alt: 'Commtech Solutions team' },
-                { src: '/images/company/hero.jpg', alt: 'Commtech Solutions hero image' },
-                { src: '/images/company/comtech.jpg', alt: 'Commtech Solutions storefront' },
-                { src: '/images/locations/head-office.jpg', alt: 'Commtech Solutions head office' },
-                { src: '/images/locations/kwabenya-retail.jpg', alt: 'Commtech Solutions Kwabenya location' },
+                { src: '/images/company/whatsapp-1.jpeg', alt: 'Commtech Solutions store' },
+                { src: '/images/company/whatsapp-2.jpeg', alt: 'Commtech Solutions interior' },
+                { src: '/images/company/whatsapp-4.jpeg', alt: 'Commtech Solutions team' },
+                { src: '/images/company/whatsapp-6.jpeg', alt: 'Commtech Solutions business' },
+                { src: '/images/company/whatsapp-7.jpeg', alt: 'Commtech Solutions operations' },
+                { src: '/images/company/locations-location-1.jpeg', alt: 'Commtech Solutions location' },
+                { src: '/images/company/locations-location-2.jpeg', alt: 'Commtech Solutions outlet' },
+                { src: '/images/company/locations-location-3.jpeg', alt: 'Commtech Solutions retail outlet' },
               ]}
               columns={3}
             />

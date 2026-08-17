@@ -10,7 +10,7 @@ export const locations: Location[] = [
     phone: '+233 XXX XXX XXXX',
     hours: 'Monday – Friday: 8:00 AM – 6:00 PM\nSaturday: 9:00 AM – 4:00 PM',
     mapUrl: 'https://maps.google.com/?q=Haatso+Accra+Ghana',
-    image: '/images/locations/head-office.jpg',
+    image: '/images/company/locations-location-1.jpeg',
     type: 'head-office',
   },
   {
@@ -22,7 +22,7 @@ export const locations: Location[] = [
     phone: '+233 XXX XXX XXXX',
     hours: 'Monday – Saturday: 8:00 AM – 7:00 PM',
     mapUrl: 'https://maps.google.com/?q=Kwabenya+Roundabout+Accra+Ghana',
-    image: '/images/locations/kwabenya-retail.jpg',
+    image: '/images/company/locations-location-2.jpeg',
     type: 'retail',
   },
   {
@@ -34,7 +34,7 @@ export const locations: Location[] = [
     phone: '+233 XXX XXX XXXX',
     hours: 'Monday – Saturday: 8:00 AM – 7:00 PM',
     mapUrl: 'https://maps.google.com/?q=Haatso+Accra+Ghana',
-    image: '/images/locations/haatso-retail.jpg',
+    image: '/images/company/locations-location-3.jpeg',
     type: 'retail',
   },
 ];

@@ -62,7 +62,7 @@ export function Home() {
             >
               <div className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-2xl border border-white/10">
                 <ImageWithFallback
-                  src="/images/company/hero.jpg"
+                  src="/images/company/whatsapp-1.jpeg"
                   alt="Commtech Solutions - Technology and connectivity"
                   className="w-full h-full object-cover"
                   fallback="/images/company/placeholder.jpg"
@@ -85,7 +85,7 @@ export function Home() {
               className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg"
             >
               <ImageWithFallback
-                src="/images/company/comtech.jpg"
+                src="/images/company/whatsapp-1.jpeg"
                 alt="Commtech Solutions storefront"
                 className="w-full h-full"
                 fallback="/images/company/placeholder.jpg"
@@ -223,7 +223,7 @@ export function Home() {
               className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-xl"
             >
               <ImageWithFallback
-                src="/images/company/comtech.jpg"
+                src="/images/company/whatsapp-4.jpeg"
                 alt="Commtech Solutions store interior"
                 className="w-full h-full"
                 fallback="/images/company/placeholder.jpg"
