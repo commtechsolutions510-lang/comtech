@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true, images: true, variants: { where: { stockQuantity: { gt: 0 } } } },
+      include: { category: true, images: { where: { isPrimary: true } }, variants: { where: { stockQuantity: { gt: 0 } } } },
       orderBy,
       skip,
       take: limitNum,
@@ -36,7 +36,31 @@ router.get('/', async (req, res) => {
     prisma.product.count({ where }),
   ]);
 
-  res.json({ products, total, page: pageNum, pages: Math.ceil(total / limitNum) });
+  const formatted = products.map(p => ({
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    category: p.category.name,
+    categorySlug: p.category.slug,
+    description: p.description || '',
+    shortDescription: p.shortDescription || '',
+    image: p.images[0]?.url || '/images/company/placeholder.jpg',
+    basePrice: parseFloat(p.basePrice.toString()),
+    salePrice: p.salePrice ? parseFloat(p.salePrice.toString()) : undefined,
+    featured: p.isFeatured,
+    stockQuantity: p.stockQuantity,
+    variants: p.variants.map(v => ({
+      id: v.id,
+      label: v.label,
+      value: v.value,
+      price: v.price ? parseFloat(v.price.toString()) : undefined,
+      stockQuantity: v.stockQuantity,
+      sku: v.sku || '',
+    })),
+    images: p.images.map(img => ({ url: img.url, alt: img.alt || '', isPrimary: img.isPrimary })),
+  }));
+
+  res.json({ products: formatted, total, page: pageNum, pages: Math.ceil(total / limitNum) });
 });
 
 router.get('/:slug', async (req, res) => {
@@ -45,7 +69,32 @@ router.get('/:slug', async (req, res) => {
     include: { category: true, images: true, variants: true },
   });
   if (!product) return res.status(404).json({ message: 'Product not found' });
-  res.json(product);
+
+  const formatted = {
+    id: product.id,
+    name: product.name,
+    slug: product.slug,
+    category: product.category.name,
+    categorySlug: product.category.slug,
+    description: product.description || '',
+    shortDescription: product.shortDescription || '',
+    image: product.images[0]?.url || '/images/company/placeholder.jpg',
+    basePrice: parseFloat(product.basePrice.toString()),
+    salePrice: product.salePrice ? parseFloat(product.salePrice.toString()) : undefined,
+    featured: product.isFeatured,
+    stockQuantity: product.stockQuantity,
+    variants: product.variants.map(v => ({
+      id: v.id,
+      label: v.label,
+      value: v.value,
+      price: v.price ? parseFloat(v.price.toString()) : undefined,
+      stockQuantity: v.stockQuantity,
+      sku: v.sku || '',
+    })),
+    images: product.images.map(img => ({ url: img.url, alt: img.alt || '', isPrimary: img.isPrimary })),
+  };
+
+  res.json(formatted);
 });
 
 export default router;

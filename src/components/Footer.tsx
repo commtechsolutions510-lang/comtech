@@ -63,6 +63,11 @@ export function Footer() {
               <li>{company.phone}</li>
               <li>{company.email}</li>
               <li>{company.address}</li>
+              <li>
+                <a href="https://www.ghanapostgps.com/map/#GE2707367" target="_blank" rel="noopener noreferrer" className="text-[#1677FF] hover:text-[#0f6ae7]">
+                  View on Map (GE-270-7367)
+                </a>
+              </li>
             </ul>
           </div>
         </div>

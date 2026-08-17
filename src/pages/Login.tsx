@@ -29,9 +29,23 @@ export function Login() {
 
     try {
       if (formType === 'login') {
-        const data = await api.post('/auth/login', { email: formData.email, password: formData.password });
-        localStorage.setItem('customer_token', data.token);
-        navigate(from, { replace: true });
+        // Use unified login that handles both admin and customer
+        const data = await api.post<{
+          token: string;
+          userType: 'admin' | 'customer';
+          user: any;
+        }>('/auth/unified-login', { email: formData.email, password: formData.password });
+
+        if (data.userType === 'admin') {
+          // Admin login
+          localStorage.setItem('admin_token', data.token);
+          localStorage.setItem('admin_user', JSON.stringify(data.user));
+          navigate('/admin', { replace: true });
+        } else {
+          // Customer login
+          localStorage.setItem('customer_token', data.token);
+          navigate(from, { replace: true });
+        }
       } else if (formType === 'register') {
         const data = await api.post('/auth/register', {
           email: formData.email,

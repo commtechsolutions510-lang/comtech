@@ -5,10 +5,10 @@ export const company: Company = {
   tagline: 'Technology, Connectivity & Everyday Solutions',
   description:
     'Commtech Solutions is a trusted provider of IT, telecommunications, electronics, phone accessories, computer accessories, networking products, and agency banking services. We are committed to delivering quality technology products and reliable financial services to individuals and businesses.',
-  phone: '+233 XXX XXX XXXX',
-  whatsapp: '+233XXXXXXXXX',
+  phone: '+233 24 359 0590',
+  whatsapp: '+233 24 359 0590',
   email: 'info@commtechsolutions.com',
-  address: 'Accra, Ghana',
+  address: 'Musukoo Avenue, GE-270-7367, Accra, Ghana',
   socials: {
     facebook: '',
     instagram: '',

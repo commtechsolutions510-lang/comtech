@@ -68,7 +68,7 @@ export function AdminUsers() {
     setSaving(true);
     try {
       if (editingUser) {
-        const updateData: any = { name: formData.name, email: formData.email, role: formData.role, status: formData.status };
+        const updateData: any = { fullName: formData.name, email: formData.email, role: formData.role, isActive: formData.status === 'active' };
         if (formData.password) updateData.password = formData.password;
         await adminApi.patch(`/users/${editingUser.id}`, updateData);
       } else {
@@ -76,7 +76,7 @@ export function AdminUsers() {
           alert('Password is required for new users');
           return;
         }
-        await adminApi.post('/users', formData);
+        await adminApi.post('/users', { fullName: formData.name, email: formData.email, password: formData.password, role: formData.role });
       }
       setModalOpen(false);
       fetchUsers();

@@ -90,7 +90,7 @@ export function AdminDashboard() {
   if (!stats) return null;
 
   const formatCurrency = (amount: number) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'GHS' }).format(amount || 0);
 
   return (
     <div className="space-y-8">
@@ -103,32 +103,24 @@ export function AdminDashboard() {
         <StatCard
           title="Total Sales"
           value={formatCurrency(stats.sales.total)}
-          change="+12.5%"
-          changeType="up"
           icon={DollarSign}
           color="bg-green-500"
         />
         <StatCard
           title="Today's Sales"
           value={formatCurrency(stats.sales.today)}
-          change="+5.2%"
-          changeType="up"
           icon={TrendingUp}
           color="bg-blue-500"
         />
         <StatCard
           title="Weekly Sales"
-          value={formatCurrency(stats.sales.weekly)}
-          change="+8.1%"
-          changeType="up"
+          value={formatCurrency(stats.sales.week)}
           icon={DollarSign}
           color="bg-purple-500"
         />
         <StatCard
           title="Monthly Sales"
-          value={formatCurrency(stats.sales.monthly)}
-          change="+15.3%"
-          changeType="up"
+          value={formatCurrency(stats.sales.month)}
           icon={DollarSign}
           color="bg-orange-500"
         />
@@ -138,8 +130,6 @@ export function AdminDashboard() {
         <StatCard
           title="Total Orders"
           value={stats.orders.total}
-          change="+4.2%"
-          changeType="up"
           icon={ShoppingCart}
           color="bg-indigo-500"
         />
@@ -158,8 +148,6 @@ export function AdminDashboard() {
         <StatCard
           title="Completed Orders"
           value={stats.orders.completed}
-          change="+12.3%"
-          changeType="up"
           icon={ShoppingCart}
           color="bg-emerald-500"
         />
@@ -169,26 +157,41 @@ export function AdminDashboard() {
         <StatCard
           title="Total Customers"
           value={stats.customers.total}
-          change="+8.4%"
-          changeType="up"
           icon={Users}
           color="bg-pink-500"
         />
         <StatCard
           title="New Customers"
           value={stats.customers.new}
-          change="+15.6%"
-          changeType="up"
           icon={Users}
           color="bg-teal-500"
         />
         <StatCard
           title="Total Products"
           value={stats.products.total}
-          change="+2.1%"
-          changeType="up"
           icon={Package}
           color="bg-violet-500"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <StatCard
+          title="Cancelled Orders"
+          value={stats.orders.cancelled}
+          icon={ShoppingCart}
+          color="bg-red-500"
+        />
+        <StatCard
+          title="Active Products"
+          value={stats.products.active}
+          icon={Package}
+          color="bg-emerald-500"
+        />
+        <StatCard
+          title="Out of Stock"
+          value={stats.products.outOfStock}
+          icon={Package}
+          color="bg-red-500"
         />
       </div>
     </div>

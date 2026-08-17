@@ -1,10 +1,6 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, Truck, Shield, Headphones, CreditCard } from 'lucide-react';
-import { products } from '../data/products';
-import { categories } from '../data/categories';
-import { services } from '../data/services';
-import { locations } from '../data/locations';
-import { company } from '../data/company';
+import { api } from '../lib/api';
 import { SectionHeading } from '../components/SectionHeading';
 import { CategoryCard } from '../components/CategoryCard';
 import { ProductCard } from '../components/ProductCard';
@@ -14,6 +10,8 @@ import { CTASection } from '../components/CTASection';
 import { Button } from '../components/Button';
 import { WhatsAppButton } from '../components/WhatsAppButton';
 import { ImageWithFallback } from '../components/ImageWithFallback';
+import { useEffect, useState } from 'react';
+import type { Category, Service, Location, Product, Settings, Company } from '../types';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -24,9 +22,50 @@ const fadeUp = {
   }),
 };
 
-const featuredProducts = products.filter((p) => p.featured).slice(0, 6);
-
 export function Home() {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
+  const [company, setCompany] = useState<Company | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [categoriesData, servicesData, locationsData, productsData, settingsData] = await Promise.all([
+          api.get<Category[]>('/categories'),
+          api.get<Service[]>('/services'),
+          api.get<Location[]>('/locations'),
+          api.get<{ data: Product[] }>('/products?limit=20'),
+          api.get<Settings>('/settings'),
+        ]);
+        setCategories(categoriesData || []);
+        setServices(servicesData || []);
+        setLocations(locationsData || []);
+        setFeaturedProducts((productsData?.data || []).filter((p) => p.featured).slice(0, 6));
+        setCompany(settingsData?.company || null);
+      } catch {
+        setCategories([]);
+        setServices([]);
+        setLocations([]);
+        setFeaturedProducts([]);
+        setCompany(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Hero */}
@@ -42,7 +81,7 @@ export function Home() {
                 Technology, Connectivity & <span className="text-[#1677FF]">Everyday Solutions</span>
               </h1>
               <p className="mt-4 sm:mt-6 text-base sm:text-lg text-slate-200 leading-relaxed max-w-xl">
-                {company.description}
+                {company?.description || 'Your one-stop shop for technology products and everyday solutions.'}
               </p>
               <div className="mt-6 sm:mt-8 flex flex-col gap-3 sm:flex-row sm:gap-4">
                 <Button to="/products" size="lg" className="w-full sm:w-auto shadow-lg shadow-[#1677FF]/25 py-3.5 sm:py-4">
@@ -77,26 +116,7 @@ export function Home() {
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="relative aspect-[4/3] rounded-2xl overflow-hidden shadow-lg"
-            >
-              <ImageWithFallback
-                src="/images/company/whatsapp-1.jpeg"
-                alt="Commtech Solutions storefront"
-                className="w-full h-full"
-                fallback="/images/company/placeholder.jpg"
-              />
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
               <SectionHeading
                 label="About Commtech"
                 title="Technology and connectivity made accessible."
@@ -245,7 +265,7 @@ export function Home() {
                 Visit any of our retail outlets or get in touch with us to explore our full catalogue.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <WhatsAppButton phone={company.whatsapp} variant="secondary">
+                <WhatsAppButton phone={company?.whatsapp || ''} variant="secondary">
                   Chat on WhatsApp
                 </WhatsAppButton>
                 <Button to="/locations" variant="outline" size="lg" className="border-white text-white hover:bg-white/10">

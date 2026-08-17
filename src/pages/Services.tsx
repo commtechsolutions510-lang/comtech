@@ -2,8 +2,9 @@ import { motion } from 'framer-motion';
 import { ServiceCard } from '../components/ServiceCard';
 import { ImageWithFallback } from '../components/ImageWithFallback';
 import { SectionHeading } from '../components/SectionHeading';
-import { services } from '../data/services';
-import { CTASection } from '../components/CTASection';
+import { api } from '../lib/api';
+import { useEffect, useState } from 'react';
+import type { Service } from '../types';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -15,6 +16,23 @@ const fadeUp = {
 };
 
 export function Services() {
+  const [services, setServices] = useState<Service[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const data = await api.get<Service[]>('/services');
+        setServices(data);
+      } catch {
+        setServices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchServices();
+  }, []);
+
   return (
     <div>
       <section className="bg-[#F5F7FA] py-16 md:py-24">
@@ -35,13 +53,19 @@ export function Services() {
 
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {services.map((service, index) => (
-              <motion.div key={service.id} custom={index} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-                <ServiceCard service={service} />
-              </motion.div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center text-gray-500">Loading services...</div>
+          ) : services.length === 0 ? (
+            <div className="text-center text-gray-500">No services available yet.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {services.map((service, index) => (
+                <motion.div key={service.id} custom={index} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                  <ServiceCard service={service} />
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -58,30 +82,18 @@ export function Services() {
               '/images/company/services-service-2.jpeg',
               '/images/company/services-service-3.jpeg',
               '/images/company/services-service-4.jpeg',
-              '/images/company/services-service-5.jpeg',
-              '/images/company/whatsapp-8.jpeg',
-            ].map((src, index) => (
-              <motion.div
-                key={src}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1, duration: 0.5 }}
-                className="relative aspect-[4/3] rounded-xl overflow-hidden shadow-sm"
-              >
-                <ImageWithFallback
-                  src={src}
-                  alt={`Commtech Solutions service ${index + 1}`}
-                  className="w-full h-full object-cover"
-                  fallback="/images/company/placeholder.jpg"
-                />
-              </motion.div>
+            ].map((src, i) => (
+              <ImageWithFallback
+                key={i}
+                src={src}
+                alt={`Commtech service ${i + 1}`}
+                className="w-full h-64 object-cover rounded-xl"
+                fallback="/images/company/placeholder.jpg"
+              />
             ))}
           </div>
         </div>
       </section>
-
-      <CTASection />
     </div>
   );
 }

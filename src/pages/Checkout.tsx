@@ -36,7 +36,7 @@ const steps: { key: Step; label: string; icon: typeof User }[] = [
 ];
 
 export function Checkout() {
-  const { items, isAuthenticated, clearCart } = useCart();
+  const { items, clearCart } = useCart();
   const [currentStep, setCurrentStep] = useState<Step>('info');
   const [isLoading, setIsLoading] = useState(false);
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -57,32 +57,31 @@ export function Checkout() {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      window.location.href = '/login';
-      return;
-    }
     if (items.length === 0) {
       window.location.href = '/cart';
     }
-  }, [isAuthenticated, items.length]);
+  }, [items.length]);
 
   useEffect(() => {
-    api.get('/customers').then((data) => {
-      setCustomerInfo({ fullName: data.fullName || '', email: data.email || '', phone: data.phone || '' });
-      setAddresses(data.addresses || []);
-      const defaultAddr = data.addresses?.find((a: Address) => a.isDefault);
-      if (defaultAddr) {
-        setAddressInfo({
-          addressId: defaultAddr.id,
-          region: defaultAddr.region,
-          city: defaultAddr.city,
-          area: defaultAddr.area,
-          street: defaultAddr.street,
-          additional: defaultAddr.additional || '',
-          contactPhone: defaultAddr.contactPhone,
-        });
-      }
-    }).catch(() => {});
+    const token = localStorage.getItem('customer_token');
+    if (token) {
+      api.get('/customers').then((data) => {
+        setCustomerInfo({ fullName: data.fullName || '', email: data.email || '', phone: data.phone || '' });
+        setAddresses(data.addresses || []);
+        const defaultAddr = data.addresses?.find((a: Address) => a.isDefault);
+        if (defaultAddr) {
+          setAddressInfo({
+            addressId: defaultAddr.id,
+            region: defaultAddr.region,
+            city: defaultAddr.city,
+            area: defaultAddr.area,
+            street: defaultAddr.street,
+            additional: defaultAddr.additional || '',
+            contactPhone: defaultAddr.contactPhone,
+          });
+        }
+      }).catch(() => {});
+    }
   }, []);
 
   const subtotal = items.reduce((sum, item) => {
@@ -138,13 +137,22 @@ export function Checkout() {
   const placeOrder = async () => {
     setIsLoading(true);
     try {
-      const order = await api.post('/orders', {
+      const token = localStorage.getItem('customer_token');
+      const orderPayload: any = {
         items: items.map((item) => ({ productId: item.productId, variantId: item.variantId, quantity: item.quantity })),
         deliveryMethod: deliveryInfo.method,
         deliveryFee,
         discountAmount: discount,
         deliveryAddress: deliveryInfo.method === 'delivery' ? { ...addressInfo } : undefined,
-      });
+      };
+
+      if (!token) {
+        orderPayload.customerEmail = customerInfo.email;
+        orderPayload.customerName = customerInfo.fullName;
+        orderPayload.customerPhone = customerInfo.phone;
+      }
+
+      const order = await api.post('/orders', orderPayload);
       setOrderNumber(order.orderNumber);
       clearCart();
 

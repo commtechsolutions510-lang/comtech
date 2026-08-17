@@ -38,9 +38,7 @@ export function Navbar() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 md:h-20">
           <Link to="/" className="flex items-center min-w-0">
-            <span className="text-xl md:text-2xl font-bold text-white tracking-tight">
-              Commtech<span className="text-[#1677FF]">.</span>
-            </span>
+            <img src="/images/company/logo.jpg" alt="Commtech Solutions" className="h-8 md:h-10 w-auto" />
           </Link>
 
           <nav className="hidden md:flex items-center space-x-8">

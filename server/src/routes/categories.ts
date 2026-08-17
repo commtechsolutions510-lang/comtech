@@ -9,7 +9,15 @@ router.get('/', async (_req, res) => {
     where: { isActive: true },
     orderBy: { displayOrder: 'asc' },
   });
-  res.json(categories);
+  const formatted = categories.map(c => ({
+    id: c.id,
+    name: c.name,
+    slug: c.slug,
+    description: c.description || '',
+    icon: '',
+    image: c.image || '/images/company/placeholder.jpg',
+  }));
+  res.json(formatted);
 });
 
 export default router;

@@ -17,12 +17,16 @@ export function AdminLogin() {
     setLoading(true);
 
     try {
-      const response = await adminApi.post<{ token: string; user: any }>('/users/login', { email, password });
+      console.log('Attempting login with:', { email, password });
+      const response = await adminApi.post<{ token: string; admin: any }>('/users/login', { email, password });
+      console.log('Login response:', response);
       localStorage.setItem('admin_token', response.token);
-      localStorage.setItem('admin_user', JSON.stringify(response.user));
+      localStorage.setItem('admin_user', JSON.stringify(response.admin));
       navigate('/admin');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      console.error('Login error:', errorMessage, err);
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
-async function request(endpoint: string, options: RequestInit = {}) {
+async function request<T = any>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('customer_token');
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -17,10 +17,10 @@ async function request(endpoint: string, options: RequestInit = {}) {
 }
 
 export const api = {
-  get: (endpoint: string) => request(endpoint),
-  post: (endpoint: string, data: any) => request(endpoint, { method: 'POST', body: JSON.stringify(data) }),
-  patch: (endpoint: string, data: any) => request(endpoint, { method: 'PATCH', body: JSON.stringify(data) }),
-  delete: (endpoint: string) => request(endpoint, { method: 'DELETE' }),
+  get: <T = any>(endpoint: string): Promise<T> => request<T>(endpoint),
+  post: <T = any>(endpoint: string, data?: any): Promise<T> => request<T>(endpoint, { method: 'POST', body: JSON.stringify(data) }),
+  patch: <T = any>(endpoint: string, data?: any): Promise<T> => request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(data) }),
+  delete: <T = any>(endpoint: string): Promise<T> => request<T>(endpoint, { method: 'DELETE' }),
 };
 
 export function getAuthHeaders(token: string) {

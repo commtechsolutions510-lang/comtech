@@ -7,7 +7,7 @@ import crypto from 'crypto';
 const router = Router();
 const prisma = new PrismaClient();
 
-router.post('/paystack/initialize', authenticateCustomer, async (req: AuthRequest, res) => {
+router.post('/paystack/initialize', async (req: AuthRequest, res) => {
   const { orderId, email, amount } = req.body;
   const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return res.status(404).json({ message: 'Order not found' });

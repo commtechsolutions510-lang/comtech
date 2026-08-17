@@ -8,10 +8,19 @@ async function adminRequest(endpoint: string, options: RequestInit = {}) {
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const response = await fetch(`${ADMIN_API_URL}${endpoint}`, { ...options, headers });
+  const url = `${ADMIN_API_URL}${endpoint}`;
+  const response = await fetch(url, { ...options, headers });
+
+  if (response.status === 401 || response.status === 403) {
+    localStorage.removeItem('admin_token');
+    localStorage.removeItem('admin_user');
+    const error = await response.json().catch(() => ({ message: 'Unauthorized' }));
+    throw new Error(error.message || 'Your session has expired. Please log in again.');
+  }
+
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Request failed' }));
-    throw new Error(error.message || 'Request failed');
+    throw new Error(error.message || `Request failed with status ${response.status}`);
   }
   return response.json();
 }

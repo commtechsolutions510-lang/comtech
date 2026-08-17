@@ -5,11 +5,26 @@ import { authenticateCustomer, AuthRequest } from '../middleware/auth';
 const router = Router();
 const prisma = new PrismaClient();
 
-router.post('/', authenticateCustomer, async (req: AuthRequest, res) => {
-  const { items, deliveryMethod, deliveryFee, discountAmount, couponId, deliveryAddress, notes } = req.body;
+router.post('/', async (req: AuthRequest, res) => {
+  const { items, deliveryMethod, deliveryFee, discountAmount, couponId, deliveryAddress, notes, customerEmail, customerName, customerPhone } = req.body;
   
-  const customer = await prisma.customer.findUnique({ where: { id: req.userId! } });
-  if (!customer) return res.status(404).json({ message: 'Customer not found' });
+  let customerId: string | undefined;
+  let customerEmailFinal = customerEmail;
+  let customerNameFinal = customerName;
+  let customerPhoneFinal = customerPhone;
+
+  if (req.userId) {
+    const customer = await prisma.customer.findUnique({ where: { id: req.userId } });
+    if (!customer) return res.status(404).json({ message: 'Customer not found' });
+    customerId = customer.id;
+    customerEmailFinal = customer.email;
+    customerNameFinal = customer.fullName;
+    customerPhoneFinal = customer.phone;
+  } else {
+    if (!customerEmailFinal || !customerNameFinal || !customerPhoneFinal) {
+      return res.status(400).json({ message: 'Customer email, name, and phone are required for guest checkout' });
+    }
+  }
 
   const productIds = items.map((i: any) => i.productId);
   const products = await prisma.product.findMany({ where: { id: { in: productIds } }, include: { variants: true } });
@@ -37,10 +52,10 @@ router.post('/', authenticateCustomer, async (req: AuthRequest, res) => {
   const order = await prisma.order.create({
     data: {
       orderNumber,
-      customerId: customer.id,
-      customerEmail: customer.email,
-      customerPhone: customer.phone,
-      customerName: customer.fullName,
+      customerId,
+      customerEmail: customerEmailFinal,
+      customerPhone: customerPhoneFinal,
+      customerName: customerNameFinal,
       deliveryMethod,
       deliveryFee: parseFloat(deliveryFee),
       discountAmount: parseFloat(discountAmount),
@@ -59,7 +74,9 @@ router.post('/', authenticateCustomer, async (req: AuthRequest, res) => {
     include: { items: true, payments: true },
   });
 
-  await prisma.cartItem.deleteMany({ where: { customerId: customer.id } });
+  if (customerId) {
+    await prisma.cartItem.deleteMany({ where: { customerId } });
+  }
 
   res.status(201).json(order);
 });

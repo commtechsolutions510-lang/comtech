@@ -193,14 +193,15 @@ export interface DashboardStats {
   sales: {
     total: number;
     today: number;
-    weekly: number;
-    monthly: number;
+    week: number;
+    month: number;
   };
   orders: {
     total: number;
     pending: number;
     processing: number;
     completed: number;
+    cancelled: number;
   };
   customers: {
     total: number;
@@ -234,7 +235,8 @@ export interface AdminOrder {
   email: string;
   phone: string;
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
+  status: string;
+  paymentStatus: string;
   date: string;
   items: number;
   shippingAddress: string;
@@ -290,14 +292,7 @@ export interface AdminLocation {
 }
 
 export interface Settings {
-  company: {
-    name: string;
-    tagline: string;
-    description: string;
-    email: string;
-    phone: string;
-    address: string;
-  };
+  company: Company;
   socials: {
     facebook?: string;
     instagram?: string;
@@ -324,16 +319,14 @@ export interface Settings {
   };
 }
 
-export interface InventoryTransaction {
+export interface Notification {
   id: string;
-  productId: string;
-  productName: string;
-  type: 'adjustment' | 'sale' | 'return' | 'restock';
-  quantity: number;
-  previousStock: number;
-  newStock: number;
-  reason: string;
-  date: string;
+  type: string;
+  title: string;
+  message: string;
+  data?: any;
+  isRead: boolean;
+  createdAt: string;
 }
 
 export interface PaginatedResponse<T> {

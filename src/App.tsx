@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { AdminLayout } from './components/admin/AdminLayout';
 import { AdminLogin } from './pages/admin/AdminLogin';
@@ -29,13 +29,21 @@ import { Login } from './pages/Login';
 import { Account } from './pages/Account';
 import { OrderDetail } from './pages/OrderDetail';
 import { NotFound } from './pages/NotFound';
+import { useAdminAuth } from './hooks/useAdminAuth';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('admin_token');
-  if (!token) {
+function AdminProtectedRoute() {
+  const status = useAdminAuth();
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="w-8 h-8 border-2 border-slate-900 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (status === 'not_authenticated') {
     return <Navigate to="/admin/login" replace />;
   }
-  return <>{children}</>;
+  return <Outlet />;
 }
 
 function App() {
@@ -45,83 +53,21 @@ function App() {
         <Routes>
           {/* Admin Routes */}
           <Route path="/admin/login" element={<AdminLogin />} />
-          <Route path="/admin" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminDashboard />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/orders" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminOrders />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/products" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminProducts />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/categories" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminCategories />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/inventory" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminInventory />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/customers" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminCustomers />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/services" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminServices />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/locations" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminLocations />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/settings" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminSettings />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/users" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminUsers />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
-          <Route path="/admin/notifications" element={
-            <ProtectedRoute>
-              <AdminLayout>
-                <AdminNotifications />
-              </AdminLayout>
-            </ProtectedRoute>
-          } />
+          <Route element={<AdminProtectedRoute />}>
+            <Route element={<AdminLayout />}>
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin/categories" element={<AdminCategories />} />
+              <Route path="/admin/inventory" element={<AdminInventory />} />
+              <Route path="/admin/customers" element={<AdminCustomers />} />
+              <Route path="/admin/services" element={<AdminServices />} />
+              <Route path="/admin/locations" element={<AdminLocations />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/notifications" element={<AdminNotifications />} />
+            </Route>
+          </Route>
 
           {/* Customer-facing Routes */}
           <Route path="/" element={<><Navbar /><main className="flex-1"><Home /></main><Footer /></>} />

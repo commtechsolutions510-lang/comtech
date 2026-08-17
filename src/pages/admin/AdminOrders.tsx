@@ -2,11 +2,36 @@ import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Eye, X, Save, ChevronDown } from 'lucide-react';
 import { adminApi } from '../../lib/adminApi';
-import type { AdminOrder, PaginatedResponse } from '../../types';
+import type { PaginatedResponse } from '../../types';
 
-type StatusFilter = 'all' | AdminOrder['status'];
+type StatusFilter = 'all' | 'pending' | 'processing' | 'shipped' | 'completed' | 'cancelled';
 
-const statusColors: Record<AdminOrder['status'], string> = {
+interface AdminOrderItem {
+  id: string;
+  productName: string;
+  variantLabel?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+interface AdminOrder {
+  id: string;
+  orderNumber: string;
+  customer: string;
+  email: string;
+  phone: string;
+  date: string;
+  items: number;
+  total: number;
+  status: string;
+  paymentStatus: string;
+  shippingAddress: string;
+  notes?: string;
+  itemDetails?: AdminOrderItem[];
+}
+
+const statusColors: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-800',
   processing: 'bg-blue-100 text-blue-800',
   shipped: 'bg-purple-100 text-purple-800',
@@ -46,9 +71,9 @@ export function AdminOrders() {
     fetchOrders();
   }, [fetchOrders]);
 
-  const updateStatus = async (orderId: string, status: AdminOrder['status']) => {
+  const updateStatus = async (orderId: string, status: string) => {
     try {
-      await adminApi.patch(`/orders/${orderId}`, { status });
+      await adminApi.patch(`/orders/${orderId}/status`, { status });
       fetchOrders();
       if (selectedOrder?.id === orderId) {
         setSelectedOrder({ ...selectedOrder, status });
@@ -65,10 +90,30 @@ export function AdminOrders() {
       await adminApi.patch(`/orders/${selectedOrder.id}/notes`, { notes: noteText });
       setSelectedOrder({ ...selectedOrder, notes: noteText });
       setNoteText('');
+      fetchOrders();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to add note');
     } finally {
       setSavingNote(false);
+    }
+  };
+
+  const openOrderDetail = async (order: AdminOrder) => {
+    setSelectedOrder(order);
+    setNoteText(order.notes || '');
+    try {
+      const fullOrder = await adminApi.get<any>(`/orders/${order.id}`);
+      const itemDetails: AdminOrderItem[] = (fullOrder.items || []).map((item: any) => ({
+        id: item.id,
+        productName: item.productName,
+        variantLabel: item.variantLabel,
+        quantity: item.quantity,
+        unitPrice: parseFloat(item.unitPrice.toString()),
+        subtotal: parseFloat(item.subtotal.toString()),
+      }));
+      setSelectedOrder({ ...order, itemDetails });
+    } catch {
+      // keep basic order info if detail fetch fails
     }
   };
 
@@ -142,12 +187,12 @@ export function AdminOrders() {
                     </td>
                     <td className="px-4 py-3 text-gray-600">{order.date}</td>
                     <td className="px-4 py-3 text-gray-600">{order.items}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">${order.total.toFixed(2)}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">GH₵{order.total.toFixed(2)}</td>
                     <td className="px-4 py-3">
                       <select
                         value={order.status}
-                        onChange={(e) => updateStatus(order.id, e.target.value as AdminOrder['status'])}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 ${statusColors[order.status]}`}
+                        onChange={(e) => updateStatus(order.id, e.target.value)}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium border-0 ${statusColors[order.status] || 'bg-gray-100 text-gray-800'}`}
                       >
                         <option value="pending">Pending</option>
                         <option value="processing">Processing</option>
@@ -158,7 +203,7 @@ export function AdminOrders() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => { setSelectedOrder(order); setNoteText(order.notes || ''); }}
+                        onClick={() => openOrderDetail(order)}
                         className="p-1.5 rounded hover:bg-gray-100 text-gray-600 hover:text-slate-900"
                       >
                         <Eye className="w-4 h-4" />
@@ -221,13 +266,32 @@ export function AdminOrders() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Total</p>
-                    <p className="font-medium text-gray-900">${selectedOrder.total.toFixed(2)}</p>
+                    <p className="font-medium text-gray-900">GH₵{selectedOrder.total.toFixed(2)}</p>
                   </div>
                   <div className="col-span-2">
                     <p className="text-sm text-gray-500">Shipping Address</p>
                     <p className="font-medium text-gray-900">{selectedOrder.shippingAddress}</p>
                   </div>
                 </div>
+
+                {selectedOrder.itemDetails && selectedOrder.itemDetails.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">Ordered Products</p>
+                    <div className="space-y-2">
+                      {selectedOrder.itemDetails.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{item.productName}</p>
+                            {item.variantLabel && <p className="text-xs text-gray-500">{item.variantLabel}</p>}
+                            <p className="text-xs text-gray-500">Qty: {item.quantity} × GH₵{item.unitPrice.toFixed(2)}</p>
+                          </div>
+                          <p className="text-sm font-medium text-gray-900">GH₵{item.subtotal.toFixed(2)}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Order Notes</label>
                   <textarea

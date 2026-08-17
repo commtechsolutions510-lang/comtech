@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, AlertTriangle, Package, ArrowUpDown, X, Save } from 'lucide-react';
 import { adminApi } from '../../lib/adminApi';
-import type { AdminProduct } from '../../types';
+import type { AdminProduct, PaginatedResponse } from '../../types';
 
 export function AdminInventory() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
@@ -18,10 +18,8 @@ export function AdminInventory() {
     setLoading(true);
     setError('');
     try {
-      const [productsData] = await Promise.all([
-        adminApi.get<AdminProduct[]>('/products'),
-      ]);
-      setProducts(productsData);
+      const productsData = await adminApi.get<PaginatedResponse<AdminProduct>>('/products?limit=100');
+      setProducts(productsData.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inventory');
     } finally {

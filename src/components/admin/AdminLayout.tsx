@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -33,7 +33,7 @@ const navigation = [
   { name: 'Notifications', href: '/admin/notifications', icon: Bell },
 ];
 
-export function AdminLayout({ children }: { children: React.ReactNode }) {
+export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -45,7 +45,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 lg:flex">
       {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -53,7 +53,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/50 lg:hidden"
+            className="fixed inset-0 z-40 bg-black/50 lg:hidden"
             onClick={() => setSidebarOpen(false)}
           />
         )}
@@ -62,7 +62,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       {/* Sidebar */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto
+          fixed inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white transform transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-auto lg:flex-shrink-0
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
         `}
       >
@@ -113,9 +113,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main content area */}
-      <div className="flex flex-col min-h-screen">
+      <div className="flex flex-col min-h-screen flex-1 overflow-hidden">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 sm:px-6 lg:px-8 flex-shrink-0">
           <div className="flex items-center justify-between h-16">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -149,9 +149,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.25, ease: 'easeOut' }}
-          className="flex-1 p-4 sm:p-6 lg:p-8"
+          className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8"
         >
-          {children}
+          <Outlet />
         </motion.main>
       </div>
     </div>

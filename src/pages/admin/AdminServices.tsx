@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, Save, Star } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { adminApi } from '../../lib/adminApi';
 import type { AdminService } from '../../types';
 
@@ -11,7 +11,6 @@ interface ServiceFormData {
   icon: string;
   image: string;
   features: string[];
-  featured: boolean;
 }
 
 const emptyForm: ServiceFormData = {
@@ -21,7 +20,6 @@ const emptyForm: ServiceFormData = {
   icon: '',
   image: '',
   features: [],
-  featured: false,
 };
 
 export function AdminServices() {
@@ -65,7 +63,6 @@ export function AdminServices() {
       icon: service.icon,
       image: service.image || '',
       features: service.features,
-      featured: service.featured,
     });
     setModalOpen(true);
   };
@@ -122,16 +119,15 @@ export function AdminServices() {
               <tr>
                 <th className="px-4 py-3">Service</th>
                 <th className="px-4 py-3">Slug</th>
-                <th className="px-4 py-3">Featured</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
               ) : services.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No services found</td></tr>
+                <tr><td colSpan={4} className="px-4 py-8 text-center text-gray-500">No services found</td></tr>
               ) : (
                 services.map((service) => (
                   <tr key={service.id} className="hover:bg-gray-50">
@@ -147,9 +143,6 @@ export function AdminServices() {
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{service.slug}</td>
-                    <td className="px-4 py-3">
-                      {service.featured && <Star className="w-4 h-4 text-yellow-500 fill-yellow-500" />}
-                    </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         service.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
@@ -216,10 +209,6 @@ export function AdminServices() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
                   />
                 </div>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input type="checkbox" checked={formData.featured} onChange={(e) => setFormData({ ...formData, featured: e.target.checked })} className="w-4 h-4 text-slate-900 rounded border-gray-300 focus:ring-slate-500" />
-                  <span className="text-sm font-medium text-gray-700">Featured Service</span>
-                </label>
                 <button type="submit" disabled={saving} className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50">
                   <Save className="w-5 h-5" />
                   {saving ? 'Saving...' : editingService ? 'Update Service' : 'Add Service'}

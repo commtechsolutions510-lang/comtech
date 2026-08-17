@@ -7,7 +7,13 @@ const prisma = new PrismaClient();
 router.get('/', async (_req, res) => {
   const settings = await prisma.websiteSetting.findMany();
   const settingsObj: Record<string, any> = {};
-  for (const s of settings) settingsObj[s.key] = s.value;
+  for (const s of settings) {
+    try {
+      settingsObj[s.key] = typeof s.value === 'string' ? JSON.parse(s.value) : s.value;
+    } catch {
+      settingsObj[s.key] = s.value;
+    }
+  }
   res.json(settingsObj);
 });
 

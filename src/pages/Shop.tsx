@@ -5,6 +5,7 @@ import { ProductCard } from '../components/ProductCard';
 import { EmptyState } from '../components/EmptyState';
 import { api } from '../lib/api';
 import type { Category, Product } from '../types';
+import { products as staticProducts } from '../data/products';
 
 type SortOption = 'featured' | 'newest' | 'price_asc' | 'price_desc' | 'name';
 
@@ -23,7 +24,9 @@ export function Shop() {
   const limit = 12;
 
   useEffect(() => {
-    api.get('/categories').then(setCategories).catch(() => setCategories([]));
+    api.get('/categories')
+      .then(setCategories)
+      .catch(() => setCategories([]));
   }, []);
 
   useEffect(() => {
@@ -44,8 +47,24 @@ export function Shop() {
         setTotalPages(data.pages);
       })
       .catch(() => {
-        setProducts([]);
-        setTotal(0);
+        const filtered = staticProducts.filter((p) => {
+          if (selectedCategory && p.categorySlug !== selectedCategory) return false;
+          if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            return (
+              p.name.toLowerCase().includes(q) ||
+              p.category.toLowerCase().includes(q) ||
+              p.shortDescription.toLowerCase().includes(q)
+            );
+          }
+          return true;
+        });
+        const sorted = [...filtered];
+        if (sortBy === 'price_asc') sorted.sort((a, b) => ((a.salePrice ?? a.basePrice) || 0) - ((b.salePrice ?? b.basePrice) || 0));
+        else if (sortBy === 'price_desc') sorted.sort((a, b) => ((b.salePrice ?? b.basePrice) || 0) - ((a.salePrice ?? a.basePrice) || 0));
+        else if (sortBy === 'name') sorted.sort((a, b) => a.name.localeCompare(b.name));
+        setProducts(sorted);
+        setTotal(sorted.length);
         setTotalPages(1);
       })
       .finally(() => setIsLoading(false));

@@ -72,6 +72,9 @@ export function Contact() {
                   <div>
                     <h3 className="text-sm font-semibold text-gray-900 uppercase tracking-wide">Address</h3>
                     <p className="mt-1 text-gray-600">{company.address}</p>
+                    <a href="https://www.ghanapostgps.com/map/#GE2707367" target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex text-sm text-[#1677FF] hover:text-[#0f6ae7]">
+                      View on Map (GE-270-7367)
+                    </a>
                   </div>
                 </div>
 

@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { LocationCard } from '../components/LocationCard';
 import { ImageWithFallback } from '../components/ImageWithFallback';
-import { locations } from '../data/locations';
+import { api } from '../lib/api';
+import { useEffect, useState } from 'react';
+import type { Location } from '../types';
 
 const fadeUp = {
   hidden: { opacity: 0, y: 20 },
@@ -13,6 +15,23 @@ const fadeUp = {
 };
 
 export function Locations() {
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const data = await api.get<Location[]>('/locations');
+        setLocations(data);
+      } catch {
+        setLocations([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLocations();
+  }, []);
+
   return (
     <div>
       <section className="bg-[#F5F7FA] py-16 md:py-24">
@@ -48,13 +67,19 @@ export function Locations() {
 
       <section className="py-16 md:py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {locations.map((location, index) => (
-              <motion.div key={location.id} custom={index} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
-                <LocationCard location={location} />
-              </motion.div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center text-gray-500">Loading locations...</div>
+          ) : locations.length === 0 ? (
+            <div className="text-center text-gray-500">No locations available yet.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {locations.map((location, index) => (
+                <motion.div key={location.id} custom={index} variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true }}>
+                  <LocationCard location={location} />
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
     </div>

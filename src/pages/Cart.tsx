@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Minus, Plus, Trash2, ShoppingBag, ArrowRight } from 'lucide-react';
-import { Button } from '../components/Button';
 import { api } from '../lib/api';
 import type { CartItem } from '../types';
 import { useCart } from '../context/CartContext';
@@ -13,15 +12,17 @@ export function Cart() {
   const { isAuthenticated, refreshCart } = useCart();
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      setIsLoading(false);
-      return;
-    }
     setIsLoading(true);
-    api.get('/cart')
-      .then(setItems)
-      .catch(() => setItems([]))
-      .finally(() => setIsLoading(false));
+    const token = localStorage.getItem('customer_token');
+    if (token) {
+      api.get('/cart')
+        .then(setItems)
+        .catch(() => setItems([]))
+        .finally(() => setIsLoading(false));
+    } else {
+      setItems(useCart().items);
+      setIsLoading(false);
+    }
   }, [isAuthenticated]);
 
   const updateQuantity = async (itemId: string, quantity: number) => {
@@ -53,19 +54,6 @@ export function Cart() {
   const deliveryFee = subtotal > 500 ? 0 : 25;
   const discount = 0;
   const total = subtotal + deliveryFee - discount;
-
-  if (!isAuthenticated) {
-    return (
-      <div className="bg-white min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-          <ShoppingBag className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-[#0B1F3A] mb-4">Please Log In</h1>
-          <p className="text-gray-600 mb-8">You need to be logged in to view your cart.</p>
-          <Button to="/login">Log In to Continue</Button>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (

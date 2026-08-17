@@ -1,14 +1,15 @@
 import { Router } from 'express';
-import dashboardRoutes from './dashboard';
-import productRoutes from './products';
-import categoryRoutes from './categories';
-import orderRoutes from './orders';
-import customerRoutes from './customers';
-import inventoryRoutes from './inventory';
-import serviceRoutes from './services';
-import locationRoutes from './locations';
-import settingsRoutes from './settings';
-import userRoutes from './users';
+import dashboardRoutes from './dashboard.js';
+import productRoutes from './products.js';
+import categoryRoutes from './categories.js';
+import orderRoutes from './orders.js';
+import customerRoutes from './customers.js';
+import inventoryRoutes from './inventory.js';
+import serviceRoutes from './services.js';
+import locationRoutes from './locations.js';
+import settingsRoutes from './settings.js';
+import userRoutes from './users.js';
+import notificationRoutes from './notifications.js';
 
 const router = Router();
 
@@ -22,5 +23,6 @@ router.use('/services', serviceRoutes);
 router.use('/locations', locationRoutes);
 router.use('/settings', settingsRoutes);
 router.use('/users', userRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;
