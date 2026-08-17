@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: starter
     rootDir: server
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
@@ -16,7 +16,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        sync: false
+        value: https://commtechsolutions-frontend.onrender.com
       - key: PAYSTACK_PUBLIC_KEY
         sync: false
       - key: PAYSTACK_SECRET_KEY
@@ -31,11 +31,11 @@ services:
     runtime: static
     plan: starter
     rootDir: .
-    buildCommand: npm install && npm run build
+    buildCommand: npm install --include=dev && npm run build
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        sync: false
+        value: https://commtechsolutions-backend.onrender.com/api
       - key: VITE_PAYSTACK_PUBLIC_KEY
         sync: false
 
