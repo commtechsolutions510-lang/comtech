@@ -8,9 +8,44 @@ const prisma = new PrismaClient();
 router.get('/', authenticateCustomer, async (req: AuthRequest, res) => {
   const items = await prisma.cartItem.findMany({
     where: { customerId: req.userId! },
-    include: { product: { include: { images: true, category: true } }, variant: true },
+    include: {
+      product: { include: { images: true, category: true } },
+      variant: { include: { optionValues: { include: { optionValue: { include: { option: true } } } } } },
+    },
   });
-  res.json(items);
+
+  const formatted = items.map(item => ({
+    id: item.id,
+    productId: item.productId,
+    variantId: item.variantId,
+    quantity: item.quantity,
+    product: {
+      id: item.product.id,
+      name: item.product.name,
+      slug: item.product.slug,
+      image: item.product.images[0]?.url || '/images/company/placeholder.jpg',
+      basePrice: parseFloat(item.product.basePrice.toString()),
+      salePrice: item.product.salePrice ? parseFloat(item.product.salePrice.toString()) : undefined,
+      stockQuantity: item.product.stockQuantity,
+      category: { name: item.product.category.name },
+      images: item.product.images.map(img => ({ url: img.url })),
+    },
+    variant: item.variant ? {
+      id: item.variant.id,
+      price: parseFloat(item.variant.price.toString()),
+      salePrice: item.variant.salePrice ? parseFloat(item.variant.salePrice.toString()) : undefined,
+      stockQuantity: item.variant.stockQuantity,
+      sku: item.variant.sku || '',
+      isActive: item.variant.isActive,
+      optionValues: item.variant.optionValues.map(ov => ({
+        id: ov.optionValue.id,
+        value: ov.optionValue.value,
+        option: { id: ov.optionValue.option.id, name: ov.optionValue.option.name },
+      })),
+    } : undefined,
+  }));
+
+  res.json(formatted);
 });
 
 router.post('/', authenticateCustomer, async (req: AuthRequest, res) => {

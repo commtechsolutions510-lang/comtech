@@ -28,7 +28,7 @@ router.get('/', async (req, res) => {
   const [products, total] = await Promise.all([
     prisma.product.findMany({
       where,
-      include: { category: true, images: { where: { isPrimary: true } }, variants: { where: { stockQuantity: { gt: 0 } } } },
+      include: { category: true, images: { where: { isPrimary: true } }, variants: { where: { isActive: true }, orderBy: { displayOrder: 'asc' }, include: { optionValues: { include: { optionValue: { include: { option: true } } } } } } },
       orderBy,
       skip,
       take: limitNum,
@@ -36,29 +36,40 @@ router.get('/', async (req, res) => {
     prisma.product.count({ where }),
   ]);
 
-  const formatted = products.map(p => ({
-    id: p.id,
-    name: p.name,
-    slug: p.slug,
-    category: p.category.name,
-    categorySlug: p.category.slug,
-    description: p.description || '',
-    shortDescription: p.shortDescription || '',
-    image: p.images[0]?.url || '/images/company/placeholder.jpg',
-    basePrice: parseFloat(p.basePrice.toString()),
-    salePrice: p.salePrice ? parseFloat(p.salePrice.toString()) : undefined,
-    featured: p.isFeatured,
-    stockQuantity: p.stockQuantity,
-    variants: p.variants.map(v => ({
-      id: v.id,
-      label: v.label,
-      value: v.value,
-      price: v.price ? parseFloat(v.price.toString()) : undefined,
-      stockQuantity: v.stockQuantity,
-      sku: v.sku || '',
-    })),
-    images: p.images.map(img => ({ url: img.url, alt: img.alt || '', isPrimary: img.isPrimary })),
-  }));
+  const formatted = products.map(p => {
+    const variants = p.variants.map(v => {
+      const optionValues = v.optionValues.map(ov => ({
+        id: ov.optionValue.id,
+        value: ov.optionValue.value,
+        option: { id: ov.optionValue.option.id, name: ov.optionValue.option.name },
+      }));
+      return {
+        id: v.id,
+        price: parseFloat(v.price.toString()),
+        salePrice: v.salePrice ? parseFloat(v.salePrice.toString()) : undefined,
+        stock: v.stockQuantity,
+        sku: v.sku || '',
+        isActive: v.isActive,
+        optionValues,
+      };
+    });
+    return {
+      id: p.id,
+      name: p.name,
+      slug: p.slug,
+      category: p.category.name,
+      categorySlug: p.category.slug,
+      description: p.description || '',
+      shortDescription: p.shortDescription || '',
+      image: p.images[0]?.url || '/images/company/placeholder.jpg',
+      basePrice: parseFloat(p.basePrice.toString()),
+      salePrice: p.salePrice ? parseFloat(p.salePrice.toString()) : undefined,
+      featured: p.isFeatured,
+      stockQuantity: p.stockQuantity,
+      variants,
+      images: p.images.map(img => ({ url: img.url, alt: img.alt || '', isPrimary: img.isPrimary })),
+    };
+  });
 
   res.json({ products: formatted, total, page: pageNum, pages: Math.ceil(total / limitNum) });
 });
@@ -66,9 +77,37 @@ router.get('/', async (req, res) => {
 router.get('/:slug', async (req, res) => {
   const product = await prisma.product.findUnique({
     where: { slug: req.params.slug },
-    include: { category: true, images: true, variants: true },
+    include: {
+      category: true,
+      images: true,
+      variants: { orderBy: { displayOrder: 'asc' }, include: { optionValues: { include: { optionValue: { include: { option: true } } } } } },
+      options: { orderBy: { displayOrder: 'asc' }, include: { values: { orderBy: { displayOrder: 'asc' } } } },
+    },
   });
   if (!product) return res.status(404).json({ message: 'Product not found' });
+
+  const variants = product.variants.map(v => {
+    const optionValues = v.optionValues.map(ov => ({
+      id: ov.optionValue.id,
+      value: ov.optionValue.value,
+      option: { id: ov.optionValue.option.id, name: ov.optionValue.option.name },
+    }));
+    return {
+      id: v.id,
+      price: parseFloat(v.price.toString()),
+      salePrice: v.salePrice ? parseFloat(v.salePrice.toString()) : undefined,
+      stock: v.stockQuantity,
+      sku: v.sku || '',
+      isActive: v.isActive,
+      optionValues,
+    };
+  });
+
+  const options = product.options.map(o => ({
+    id: o.id,
+    name: o.name,
+    values: o.values.map(v => ({ id: v.id, value: v.value })),
+  }));
 
   const formatted = {
     id: product.id,
@@ -83,14 +122,8 @@ router.get('/:slug', async (req, res) => {
     salePrice: product.salePrice ? parseFloat(product.salePrice.toString()) : undefined,
     featured: product.isFeatured,
     stockQuantity: product.stockQuantity,
-    variants: product.variants.map(v => ({
-      id: v.id,
-      label: v.label,
-      value: v.value,
-      price: v.price ? parseFloat(v.price.toString()) : undefined,
-      stockQuantity: v.stockQuantity,
-      sku: v.sku || '',
-    })),
+    variants,
+    options,
     images: product.images.map(img => ({ url: img.url, alt: img.alt || '', isPrimary: img.isPrimary })),
   };
 

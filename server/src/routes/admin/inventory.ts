@@ -28,13 +28,38 @@ router.post('/adjust', authenticateAdmin, requireRole('super_admin', 'admin', 's
   const product = await prisma.product.findUnique({ where: { id: productId } });
   if (!product) return res.status(404).json({ message: 'Product not found' });
 
-  const newStock = product.stockQuantity + parseInt(quantity);
+  const qty = parseInt(quantity);
+  const type = qty > 0 ? 'restock' : 'adjustment';
+
+  if (variantId) {
+    const variant = await prisma.productVariant.findUnique({ where: { id: variantId } });
+    if (!variant) return res.status(404).json({ message: 'Variant not found' });
+    const newStock = variant.stockQuantity + qty;
+    if (newStock < 0) return res.status(400).json({ message: 'Stock cannot be negative' });
+
+    const transaction = await prisma.inventoryTransaction.create({
+      data: { productId, variantId, type, quantity: qty, reason, createdBy: req.adminId },
+    });
+
+    await prisma.productVariant.update({
+      where: { id: variantId },
+      data: { stockQuantity: newStock },
+    });
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: { stockQuantity: { increment: qty } },
+    });
+
+    res.status(201).json(transaction);
+    return;
+  }
+
+  const newStock = product.stockQuantity + qty;
   if (newStock < 0) return res.status(400).json({ message: 'Stock cannot be negative' });
 
-  const type = parseInt(quantity) > 0 ? 'restock' : 'adjustment';
-
   const transaction = await prisma.inventoryTransaction.create({
-    data: { productId, variantId, type, quantity: parseInt(quantity), reason, createdBy: req.adminId },
+    data: { productId, variantId, type, quantity: qty, reason, createdBy: req.adminId },
   });
 
   await prisma.product.update({

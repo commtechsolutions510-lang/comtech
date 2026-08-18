@@ -38,17 +38,23 @@ export interface Product {
   featured?: boolean;
   stockQuantity?: number;
   variants?: ProductVariant[];
+  options?: { id: string; name: string; values: { id: string; value: string }[] }[];
   images?: { url: string; alt?: string; isPrimary?: boolean }[];
   keywords?: string[];
 }
 
 export interface ProductVariant {
   id?: string;
-  label: string;
-  value: string;
   price?: number;
-  stockQuantity?: number;
+  salePrice?: number;
+  stock?: number;
   sku?: string;
+  isActive?: boolean;
+  optionValues?: {
+    id: string;
+    value: string;
+    option: { id: string; name: string };
+  }[];
 }
 
 export interface Service {
@@ -91,10 +97,16 @@ export interface CartItem {
   };
   variant?: {
     id: string;
-    label: string;
-    value: string;
-    price?: number;
+    price: number;
+    salePrice?: number;
     stockQuantity: number;
+    sku: string;
+    isActive: boolean;
+    optionValues: {
+      id: string;
+      value: string;
+      option: { id: string; name: string };
+    }[];
   };
 }
 
@@ -220,12 +232,15 @@ export interface AdminProduct {
   category: string;
   categorySlug: string;
   price: number;
+  salePrice?: number;
   stock: number;
   status: 'active' | 'inactive' | 'out_of_stock';
   featured: boolean;
   image: string;
   description: string;
   createdAt: string;
+  variants?: ProductVariant[];
+  options?: { id: string; name: string; values: { id: string; value: string }[] }[];
 }
 
 export interface AdminOrder {

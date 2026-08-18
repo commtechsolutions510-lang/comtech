@@ -2,14 +2,25 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, AlertTriangle, Package, ArrowUpDown, X, Save } from 'lucide-react';
 import { adminApi } from '../../lib/adminApi';
-import type { AdminProduct, PaginatedResponse } from '../../types';
+import type { AdminProduct } from '../../types';
+
+interface InventoryRow {
+  productId: string;
+  productName: string;
+  category: string;
+  image: string;
+  variantId?: string;
+  variantLabel?: string;
+  stock: number;
+  status: string;
+}
 
 export function AdminInventory() {
-  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [rows, setRows] = useState<InventoryRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
-  const [selectedProduct, setSelectedProduct] = useState<AdminProduct | null>(null);
+  const [selectedRow, setSelectedRow] = useState<InventoryRow | null>(null);
   const [adjustmentQuantity, setAdjustmentQuantity] = useState('');
   const [adjustmentReason, setAdjustmentReason] = useState('');
   const [saving, setSaving] = useState(false);
@@ -18,8 +29,39 @@ export function AdminInventory() {
     setLoading(true);
     setError('');
     try {
-      const productsData = await adminApi.get<PaginatedResponse<AdminProduct>>('/products?limit=100');
-      setProducts(productsData.data);
+      const productsData = await adminApi.get<{ data: AdminProduct[] }>('/products?limit=100');
+      const inventoryRows: InventoryRow[] = [];
+      for (const p of productsData.data) {
+        if (p.variants && p.variants.length > 0) {
+          for (const v of p.variants) {
+            const optionValues = v.optionValues || [];
+            const label = optionValues.map(ov => `${ov.option.name}: ${ov.value}`).join(', ') || 'Default';
+            const stock = v.stock || 0;
+            const status = v.isActive === false ? 'inactive' : stock === 0 ? 'out_of_stock' : stock < 10 ? 'low_stock' : 'active';
+            inventoryRows.push({
+              productId: p.id,
+              productName: p.name,
+              category: p.category,
+              image: p.image,
+              variantId: v.id,
+              variantLabel: label,
+              stock,
+              status,
+            });
+          }
+        } else {
+          const status = p.status === 'inactive' ? 'inactive' : p.stock === 0 ? 'out_of_stock' : p.stock < 10 ? 'low_stock' : 'active';
+          inventoryRows.push({
+            productId: p.id,
+            productName: p.name,
+            category: p.category,
+            image: p.image,
+            stock: p.stock,
+            status,
+          });
+        }
+      }
+      setRows(inventoryRows);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inventory');
     } finally {
@@ -31,25 +73,27 @@ export function AdminInventory() {
     fetchData();
   }, []);
 
-  const lowStockProducts = products.filter(p => p.stock < 10 && p.status !== 'out_of_stock');
-  const filteredProducts = products.filter(p =>
-    p.name.toLowerCase().includes(search.toLowerCase()) ||
-    p.category.toLowerCase().includes(search.toLowerCase())
+  const lowStockRows = rows.filter(r => r.status === 'low_stock' || r.status === 'out_of_stock');
+  const filteredRows = rows.filter(r =>
+    r.productName.toLowerCase().includes(search.toLowerCase()) ||
+    r.category.toLowerCase().includes(search.toLowerCase()) ||
+    (r.variantLabel && r.variantLabel.toLowerCase().includes(search.toLowerCase()))
   );
 
   const handleAdjustStock = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedProduct) return;
+    if (!selectedRow) return;
     setSaving(true);
     try {
       await adminApi.post(`/inventory/adjust`, {
-        productId: selectedProduct.id,
+        productId: selectedRow.productId,
+        variantId: selectedRow.variantId,
         quantity: parseInt(adjustmentQuantity) || 0,
         reason: adjustmentReason,
       });
       setAdjustmentQuantity('');
       setAdjustmentReason('');
-      setSelectedProduct(null);
+      setSelectedRow(null);
       fetchData();
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to adjust stock');
@@ -65,23 +109,25 @@ export function AdminInventory() {
         <p className="mt-1 text-sm text-gray-500">Track and manage stock levels</p>
       </div>
 
-      {lowStockProducts.length > 0 && (
+      {lowStockRows.length > 0 && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
           <div className="flex items-center gap-2 mb-3">
             <AlertTriangle className="w-5 h-5 text-yellow-600" />
             <h3 className="font-semibold text-yellow-800">Low Stock Alerts</h3>
           </div>
           <div className="space-y-2">
-            {lowStockProducts.map((product) => (
-              <div key={product.id} className="flex items-center justify-between bg-white rounded-lg p-3 border border-yellow-100">
+            {lowStockRows.slice(0, 10).map((row) => (
+              <div key={`${row.productId}-${row.variantId || 'base'}`} className="flex items-center justify-between bg-white rounded-lg p-3 border border-yellow-100">
                 <div className="flex items-center gap-3">
-                  <img src={product.image} alt={product.name} className="w-8 h-8 rounded object-cover bg-gray-100" />
+                  <img src={row.image} alt={row.productName} className="w-8 h-8 rounded object-cover bg-gray-100" />
                   <div>
-                    <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                    <p className="text-xs text-gray-500">{product.category}</p>
+                    <p className="text-sm font-medium text-gray-900">{row.productName}</p>
+                    <p className="text-xs text-gray-500">{row.variantLabel || row.category}</p>
                   </div>
                 </div>
-                <span className="text-sm font-bold text-yellow-700">{product.stock} left</span>
+                <span className={`text-sm font-bold ${row.stock === 0 ? 'text-red-700' : 'text-yellow-700'}`}>
+                  {row.stock === 0 ? 'Out of Stock' : `${row.stock} left`}
+                </span>
               </div>
             ))}
           </div>
@@ -96,7 +142,7 @@ export function AdminInventory() {
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search products..."
+              placeholder="Search products or variants..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
             />
           </div>
@@ -111,44 +157,47 @@ export function AdminInventory() {
             <thead className="bg-gray-50 text-gray-500 font-medium">
               <tr>
                 <th className="px-4 py-3">Product</th>
+                <th className="px-4 py-3">Variant</th>
                 <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Current Stock</th>
+                <th className="px-4 py-3">Stock</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
-              ) : filteredProducts.length === 0 ? (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-gray-500">No products found</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
+              ) : filteredRows.length === 0 ? (
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-gray-500">No inventory found</td></tr>
               ) : (
-                filteredProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-gray-50">
+                filteredRows.map((row) => (
+                  <tr key={`${row.productId}-${row.variantId || 'base'}`} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <img src={product.image} alt={product.name} className="w-10 h-10 rounded-lg object-cover bg-gray-100" />
-                        <p className="font-medium text-gray-900">{product.name}</p>
+                        <img src={row.image} alt={row.productName} className="w-10 h-10 rounded-lg object-cover bg-gray-100" />
+                        <p className="font-medium text-gray-900">{row.productName}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{product.category}</td>
+                    <td className="px-4 py-3 text-gray-600">{row.variantLabel || '—'}</td>
+                    <td className="px-4 py-3 text-gray-600">{row.category}</td>
                     <td className="px-4 py-3">
-                      <span className={`font-bold ${product.stock === 0 ? 'text-red-600' : product.stock < 10 ? 'text-yellow-600' : 'text-gray-900'}`}>
-                        {product.stock}
+                      <span className={`font-bold ${row.stock === 0 ? 'text-red-600' : row.stock < 10 ? 'text-yellow-600' : 'text-gray-900'}`}>
+                        {row.stock}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        product.status === 'active' ? 'bg-green-100 text-green-800' :
-                        product.status === 'out_of_stock' ? 'bg-red-100 text-red-800' :
+                        row.status === 'active' ? 'bg-green-100 text-green-800' :
+                        row.status === 'out_of_stock' ? 'bg-red-100 text-red-800' :
+                        row.status === 'low_stock' ? 'bg-yellow-100 text-yellow-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
-                        {product.status.replace('_', ' ')}
+                        {row.status.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button
-                        onClick={() => { setSelectedProduct(product); setAdjustmentQuantity(''); setAdjustmentReason(''); }}
+                        onClick={() => { setSelectedRow(row); setAdjustmentQuantity(''); setAdjustmentReason(''); }}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-slate-900 bg-slate-100 rounded-lg hover:bg-slate-200 transition-colors"
                       >
                         <ArrowUpDown className="w-4 h-4" />
@@ -165,13 +214,13 @@ export function AdminInventory() {
 
       {/* Adjust Stock Modal */}
       <AnimatePresence>
-        {selectedProduct && (
+        {selectedRow && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-            onClick={() => setSelectedProduct(null)}
+            onClick={() => setSelectedRow(null)}
           >
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -182,7 +231,7 @@ export function AdminInventory() {
             >
               <div className="flex items-center justify-between p-6 border-b border-gray-200">
                 <h2 className="text-lg font-bold text-gray-900">Adjust Stock</h2>
-                <button onClick={() => setSelectedProduct(null)} className="p-2 rounded-lg hover:bg-gray-100">
+                <button onClick={() => setSelectedRow(null)} className="p-2 rounded-lg hover:bg-gray-100">
                   <X className="w-5 h-5 text-gray-500" />
                 </button>
               </div>
@@ -190,8 +239,8 @@ export function AdminInventory() {
                 <div className="flex items-center gap-3 mb-4">
                   <Package className="w-5 h-5 text-gray-400" />
                   <div>
-                    <p className="font-medium text-gray-900">{selectedProduct.name}</p>
-                    <p className="text-sm text-gray-500">Current stock: {selectedProduct.stock}</p>
+                    <p className="font-medium text-gray-900">{selectedRow.productName}</p>
+                    <p className="text-sm text-gray-500">{selectedRow.variantLabel || selectedRow.category} — Current stock: {selectedRow.stock}</p>
                   </div>
                 </div>
                 <form onSubmit={handleAdjustStock} className="space-y-4">

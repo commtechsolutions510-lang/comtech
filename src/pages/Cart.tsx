@@ -116,13 +116,15 @@ export function Cart() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                        <div>
-                          <h3 className="text-base font-semibold text-[#0B1F3A]">{item.product.name}</h3>
-                          {item.variant && (
-                            <p className="text-sm text-gray-500 mt-0.5">{item.variant.label}: {item.variant.value}</p>
-                          )}
-                          <p className="text-sm font-medium text-[#1677FF] mt-1">GH₵{price.toFixed(2)}</p>
-                        </div>
+                      <div>
+                        <h3 className="text-base font-semibold text-[#0B1F3A]">{item.product.name}</h3>
+                        {item.variant?.optionValues && item.variant.optionValues.length > 0 && (
+                          <p className="text-sm text-gray-500 mt-0.5">
+                            {item.variant.optionValues.map(ov => `${ov.option.name}: ${ov.value}`).join(', ')}
+                          </p>
+                        )}
+                        <p className="text-sm font-medium text-[#1677FF] mt-1">GH₵{price.toFixed(2)}</p>
+                      </div>
                         <button
                           onClick={() => removeItem(item.id)}
                           className="self-start p-2 text-gray-400 hover:text-red-500 transition-colors"

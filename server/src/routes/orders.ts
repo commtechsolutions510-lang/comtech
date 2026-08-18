@@ -27,17 +27,21 @@ router.post('/', async (req: AuthRequest, res) => {
   }
 
   const productIds = items.map((i: any) => i.productId);
-  const products = await prisma.product.findMany({ where: { id: { in: productIds } }, include: { variants: true } });
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { variants: { include: { optionValues: { include: { optionValue: { include: { option: true } } } } } } },
+  });
 
   const orderItems = items.map((item: any) => {
     const product = products.find(p => p.id === item.productId)!;
     const variant = product.variants.find(v => v.id === item.variantId);
-    const unitPrice = variant?.price ? parseFloat(variant.price.toString()) : parseFloat(product.basePrice.toString());
+    const unitPrice = variant ? parseFloat(variant.price.toString()) : parseFloat(product.basePrice.toString());
+    const variantLabel = variant?.optionValues.map(ov => `${ov.optionValue.option.name}: ${ov.optionValue.value}`).join(', ') || null;
     return {
       productId: product.id,
       variantId: item.variantId,
       productName: product.name,
-      variantLabel: variant ? `${variant.label}: ${variant.value}` : null,
+      variantLabel,
       quantity: item.quantity,
       unitPrice,
       subtotal: unitPrice * item.quantity,
@@ -73,6 +77,47 @@ router.post('/', async (req: AuthRequest, res) => {
     },
     include: { items: true, payments: true },
   });
+
+  for (const item of orderItems) {
+    if (item.variantId) {
+      const variant = products.find(p => p.id === item.productId)?.variants.find(v => v.id === item.variantId);
+      if (variant && variant.stockQuantity >= item.quantity) {
+        await prisma.productVariant.update({
+          where: { id: variant.id },
+          data: { stockQuantity: { decrement: item.quantity } },
+        });
+        await prisma.inventoryTransaction.create({
+          data: {
+            productId: item.productId,
+            variantId: item.variantId,
+            type: 'sale',
+            quantity: -item.quantity,
+            reason: `Order ${orderNumber}`,
+            referenceId: order.id,
+            createdBy: customerId || 'guest',
+          },
+        });
+      }
+    } else {
+      const product = products.find(p => p.id === item.productId);
+      if (product && product.stockQuantity >= item.quantity) {
+        await prisma.product.update({
+          where: { id: product.id },
+          data: { stockQuantity: { decrement: item.quantity } },
+        });
+        await prisma.inventoryTransaction.create({
+          data: {
+            productId: item.productId,
+            type: 'sale',
+            quantity: -item.quantity,
+            reason: `Order ${orderNumber}`,
+            referenceId: order.id,
+            createdBy: customerId || 'guest',
+          },
+        });
+      }
+    }
+  }
 
   if (customerId) {
     await prisma.cartItem.deleteMany({ where: { customerId } });

@@ -72,6 +72,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                   {items.map((item) => {
                     const price = item.variant?.price ?? item.product.basePrice;
                     const image = item.product.images?.[0]?.url || item.product.image;
+                    const variantLabel = item.variant?.optionValues?.map(ov => `${ov.option.name}: ${ov.value}`).join(', ') || '';
                     return (
                       <div key={item.id} className="flex gap-4">
                         <div className="w-20 h-20 rounded-lg overflow-hidden bg-gray-50 flex-shrink-0 border border-[#E5E7EB]">
@@ -79,8 +80,8 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
                         </div>
                         <div className="flex-1 min-w-0">
                           <h4 className="text-sm font-semibold text-[#0B1F3A] truncate">{item.product.name}</h4>
-                          {item.variant && (
-                            <p className="text-xs text-gray-500 mt-0.5">{item.variant.label}: {item.variant.value}</p>
+                          {variantLabel && (
+                            <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{variantLabel}</p>
                           )}
                           <p className="text-sm font-medium text-[#1677FF] mt-1">GH₵{price.toFixed(2)}</p>
                           <div className="flex items-center gap-3 mt-2">

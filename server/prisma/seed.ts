@@ -12,7 +12,7 @@ async function main() {
   });
 
   const settings = {
-    company: { name: 'Commtech Solutions', tagline: 'Technology, Connectivity & Everyday Solutions', description: 'Commtech Solutions is a trusted provider of IT, telecommunications, electronics, phone accessories, computer accessories, networking products, and agency banking services.', email: 'info@commtechsolutions.com', phone: '+233 24 359 0590', address: 'Musukoo Avenue, GE-270-7367, Accra, Ghana' },
+    company: { name: 'Commtech Solutions', tagline: 'Technology, Connectivity & Everyday Solutions', description: 'Commtech Solutions is a trusted provider of IT, telecommunications, electronics, phone accessories, computer accessories, networking products, and agency banking services.', email: 'info@commtechsolutions.com', phone: '+233 24 359 0590', address: 'Musukoo Avenue, GE-270-7367, Accra, Ghana', whatsapp: '+233 24 359 0590' },
     socials: { facebook: '', instagram: '', twitter: '', linkedin: '', youtube: '' },
     currency: { code: 'GHS', symbol: 'GH₵', rate: 1 },
     delivery: { freeDeliveryThreshold: 200, standardDeliveryFee: 15, expressDeliveryFee: 30, estimatedDays: '3-5' },
@@ -65,9 +65,9 @@ async function main() {
   }
 
   const locations = [
-    { name: 'Commtech Solutions Head Office', slug: 'head-office', description: 'Main headquarters of Commtech Solutions', address: 'Haatso, Accra', phone: '+233 30 123 4567', hours: 'Mon-Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 4:00 PM', type: 'head-office', displayOrder: 1 },
-    { name: 'Kwabenya Roundabout Retail Outlet', slug: 'kwabenya-outlet', description: 'Retail outlet at Kwabenya Roundabout', address: 'Kwabenya Roundabout, Accra', phone: '+233 30 765 4321', hours: 'Mon-Sat: 8:00 AM - 7:00 PM, Sun: 1:00 PM - 5:00 PM', type: 'retail', displayOrder: 2 },
-    { name: 'Haatso Retail Outlet', slug: 'haatso-outlet', description: 'Retail outlet in Haatso', address: 'Haatso, Accra', phone: '+233 30 987 6543', hours: 'Mon-Sat: 8:00 AM - 7:00 PM, Sun: 1:00 PM - 5:00 PM', type: 'retail', displayOrder: 3 },
+    { name: 'Commtech Solutions Head Office', slug: 'head-office', description: 'Main headquarters of Commtech Solutions', address: 'Musukoo Avenue, GE-270-7367, Accra, Ghana', phone: '+233 24 359 0590', hours: 'Mon-Fri: 8:00 AM - 6:00 PM, Sat: 9:00 AM - 4:00 PM', mapUrl: 'https://www.ghanapostgps.com/map/#GE2707367', type: 'head-office', displayOrder: 1 },
+    { name: 'Kwabenya Roundabout Retail Outlet', slug: 'kwabenya-outlet', description: 'Retail outlet at Kwabenya Roundabout', address: 'Kwabenya Roundabout, Accra, Ghana', phone: '+233 24 359 0590', hours: 'Mon-Sat: 8:00 AM - 7:00 PM, Sun: 1:00 PM - 5:00 PM', mapUrl: 'https://www.ghanapostgps.com/map/#GE2707367', type: 'retail', displayOrder: 2 },
+    { name: 'Haatso Retail Outlet', slug: 'haatso-outlet', description: 'Retail outlet in Haatso', address: 'Haatso, Accra, Ghana', phone: '+233 24 359 0590', hours: 'Mon-Sat: 8:00 AM - 7:00 PM, Sun: 1:00 PM - 5:00 PM', mapUrl: 'https://www.ghanapostgps.com/map/#GE2707367', type: 'retail', displayOrder: 3 },
   ];
 
   for (const loc of locations) {
