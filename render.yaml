@@ -16,7 +16,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://commtechsolutions-frontend.onrender.com
+        value: https://commtech-frontend.onrender.com
       - key: PAYSTACK_PUBLIC_KEY
         sync: false
       - key: PAYSTACK_SECRET_KEY
@@ -35,7 +35,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://commtechsolutions-backend.onrender.com/api
+        value: https://commtech-api.onrender.com/api
       - key: VITE_PAYSTACK_PUBLIC_KEY
         sync: false
 
