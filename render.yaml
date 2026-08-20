@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: commtech-api
+    name: commtechsolutions-backend
     runtime: node
     plan: starter
     rootDir: server
@@ -16,7 +16,7 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://commtech-frontend.onrender.com
+        value: https://commtechsolutions-frontend.onrender.com
       - key: PAYSTACK_PUBLIC_KEY
         sync: false
       - key: PAYSTACK_SECRET_KEY
@@ -27,7 +27,7 @@ services:
         sync: false
 
   - type: web
-    name: commtech-frontend
+    name: commtechsolutions-frontend
     runtime: static
     plan: starter
     rootDir: .
@@ -35,7 +35,7 @@ services:
     staticPublishPath: dist
     envVars:
       - key: VITE_API_URL
-        value: https://commtech-api.onrender.com/api
+        value: https://commtechsolutions-backend.onrender.com/api
       - key: VITE_PAYSTACK_PUBLIC_KEY
         sync: false
 
