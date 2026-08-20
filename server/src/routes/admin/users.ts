@@ -11,7 +11,15 @@ router.get('/', authenticateAdmin, requireRole('super_admin'), async (_req: Auth
   const users = await prisma.adminUser.findMany({
     select: { id: true, email: true, fullName: true, role: true, isActive: true, createdAt: true, lastLogin: true },
   });
-  res.json(users);
+  res.json(users.map(user => ({
+    id: user.id,
+    name: user.fullName,
+    email: user.email,
+    role: user.role,
+    status: user.isActive ? 'active' : 'inactive',
+    lastLogin: user.lastLogin,
+    createdAt: user.createdAt,
+  })));
 });
 
 router.post('/', authenticateAdmin, requireRole('super_admin'), async (req: AuthRequest, res) => {
