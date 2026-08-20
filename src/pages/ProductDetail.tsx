@@ -7,6 +7,7 @@ import { WhatsAppButton } from '../components/WhatsAppButton';
 import { api } from '../lib/api';
 import type { Product } from '../types';
 import { company } from '../data/company';
+import { useCart } from '../context/CartContext';
 
 export function ProductDetail() {
   const { slug } = useParams<{ slug: string }>();
@@ -14,6 +15,7 @@ export function ProductDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
+  const { addItem, openCart } = useCart();
 
   useEffect(() => {
     if (!slug) return;
@@ -21,11 +23,7 @@ export function ProductDetail() {
     api.get(`/products/${slug}`)
       .then((data) => {
         setProduct(data);
-        const initial: Record<string, string> = {};
-        data.options?.forEach((opt: any) => {
-          if (opt.values?.[0]?.id) initial[opt.id] = opt.values[0].id;
-        });
-        setSelectedOptions(initial);
+        setSelectedOptions({});
       })
       .finally(() => setIsLoading(false));
   }, [slug]);
@@ -33,7 +31,8 @@ export function ProductDetail() {
   const selectedVariant = useMemo(() => {
     if (!product?.variants?.length) return undefined;
     const optionIds = Object.values(selectedOptions);
-    if (optionIds.length === 0) return product.variants[0];
+    if (product.options?.length && optionIds.length !== product.options.length) return undefined;
+    if (optionIds.length === 0) return product.variants.length === 1 ? product.variants[0] : undefined;
     return product.variants.find(v => {
       const vOptionIds = v.optionValues?.map(ov => ov.id).sort() || [];
       return JSON.stringify(vOptionIds.sort()) === JSON.stringify([...optionIds].sort());
@@ -42,17 +41,18 @@ export function ProductDetail() {
 
   const basePrice = product?.basePrice ?? 0;
   const salePrice = product?.salePrice ?? 0;
-  const stockQuantity = selectedVariant?.stock ?? product?.stockQuantity ?? 0;
+  const stockQuantity = product?.variants?.length ? (selectedVariant?.stock ?? 0) : (product?.stockQuantity ?? 0);
   const variantPrice = selectedVariant?.price ?? basePrice;
   const variantSalePrice = selectedVariant?.salePrice ?? salePrice;
   const isOutOfStock = stockQuantity <= 0;
   const images = product?.images && product.images.length > 0 ? product.images : [{ url: product?.image || '' }];
 
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!product) return;
+    if (product.variants?.length && !selectedVariant) return;
     const variantId = product.variants?.length ? selectedVariant?.id : undefined;
-    const event = new CustomEvent('add-to-cart', { detail: { productId: product.id, variantId } });
-    window.dispatchEvent(event);
+    await addItem(product.id, variantId, quantity, product, selectedVariant);
+    openCart();
   };
 
   if (isLoading) {
@@ -214,12 +214,12 @@ export function ProductDetail() {
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
                 <Button
                   onClick={handleAddToCart}
-                  disabled={isOutOfStock}
+                  disabled={isOutOfStock || (!!product.variants?.length && !selectedVariant)}
                   size="lg"
                   className="flex-1"
                 >
                   <ShoppingCart className="w-5 h-5 mr-2" />
-                  {isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
+                  {isOutOfStock ? 'Out of Stock' : product.variants?.length && !selectedVariant ? 'Select an option' : 'Add to Cart'}
                 </Button>
                 <WhatsAppButton
                   phone={company.whatsapp}

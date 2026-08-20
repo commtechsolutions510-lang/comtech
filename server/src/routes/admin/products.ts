@@ -5,6 +5,22 @@ import { authenticateAdmin, requireRole, AuthRequest } from '../../middleware/au
 const router = Router();
 const prisma = new PrismaClient();
 
+function parseMoney(value: unknown, field: string, required = false): number | null {
+  if (value === undefined || value === null || value === '') {
+    if (required) throw new Error(`${field} is required`);
+    return null;
+  }
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount < 0) throw new Error(`${field} must be a non-negative number`);
+  return amount;
+}
+
+function parseStock(value: unknown, field = 'Stock'): number {
+  const stock = Number(value ?? 0);
+  if (!Number.isInteger(stock) || stock < 0) throw new Error(`${field} must be a non-negative whole number`);
+  return stock;
+}
+
 function formatProduct(p: any) {
   const variants = (p.variants || []).map((v: any) => ({
     id: v.id,
@@ -35,12 +51,15 @@ function formatProduct(p: any) {
     categorySlug: p.category.slug,
     price: parseFloat(p.basePrice.toString()),
     salePrice: p.salePrice ? parseFloat(p.salePrice.toString()) : undefined,
-    stock: p.stockQuantity,
+    stock: p.variants?.length ? p.variants.reduce((total: number, variant: any) => total + variant.stockQuantity, 0) : p.stockQuantity,
     status: p.isActive ? (p.stockQuantity === 0 && (!p.variants || p.variants.length === 0 || p.variants.every((v: any) => v.stockQuantity === 0)) ? 'out_of_stock' : 'active') : 'inactive',
     featured: p.isFeatured,
     image: p.images?.[0]?.url || '/images/company/placeholder.jpg',
+    images: (p.images || []).map((image: any) => ({ id: image.id, url: image.url, alt: image.alt || '', isPrimary: image.isPrimary })),
     description: p.description || '',
+    sku: p.sku || '',
     createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
     variants,
     options,
   };
@@ -78,6 +97,7 @@ router.get('/', authenticateAdmin, requireRole('super_admin', 'admin', 'staff'),
 });
 
 router.post('/', authenticateAdmin, requireRole('super_admin', 'admin', 'staff'), async (req: AuthRequest, res) => {
+  try {
   let categoryId = req.body.categoryId;
   if (!categoryId && req.body.category) {
     const cat = await prisma.category.findFirst({ where: { name: req.body.category } });
@@ -89,14 +109,17 @@ router.post('/', authenticateAdmin, requireRole('super_admin', 'admin', 'staff')
   }
 
   const slug = (req.body.name || '').toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+  const basePrice = parseMoney(req.body.price ?? req.body.basePrice, 'Base price', true)!;
+  const salePrice = parseMoney(req.body.salePrice, 'Sale price');
+  if (salePrice !== null && salePrice > basePrice) throw new Error('Sale price cannot exceed base price');
   const product = await prisma.product.create({
     data: {
       name: req.body.name,
       slug: slug || `product-${Date.now()}`,
       categoryId,
-      basePrice: parseFloat(req.body.price || req.body.basePrice || 0),
-      salePrice: req.body.salePrice ? parseFloat(req.body.salePrice) : null,
-      stockQuantity: parseInt(req.body.stock || req.body.stockQuantity || 0),
+      basePrice,
+      salePrice,
+      stockQuantity: parseStock(req.body.stock ?? req.body.stockQuantity),
       description: req.body.description,
       sku: req.body.sku,
       isActive: req.body.status !== 'inactive',
@@ -105,8 +128,11 @@ router.post('/', authenticateAdmin, requireRole('super_admin', 'admin', 'staff')
     include: { category: { select: { name: true, slug: true } }, images: { where: { isPrimary: true } } },
   });
 
-  if (req.body.image) {
-    await prisma.productImage.create({ data: { productId: product.id, url: req.body.image, isPrimary: true } });
+  const imageUrls = Array.isArray(req.body.images) ? req.body.images.filter((url: unknown): url is string => typeof url === 'string' && Boolean(url.trim())) : [];
+  if (imageUrls.length > 0 || req.body.image) {
+    await prisma.productImage.createMany({
+      data: (imageUrls.length > 0 ? imageUrls : [req.body.image]).map((url, index) => ({ productId: product.id, url, isPrimary: index === 0 })),
+    });
   }
 
   if (req.body.options?.length) {
@@ -155,9 +181,9 @@ router.post('/', authenticateAdmin, requireRole('super_admin', 'admin', 'staff')
       data: req.body.variants.map((v: any) => ({
         productId: product.id,
         sku: v.sku,
-        price: parseFloat(v.price || 0),
-        salePrice: v.salePrice ? parseFloat(v.salePrice) : null,
-        stockQuantity: parseInt(v.stock || 0),
+        price: parseMoney(v.price, 'Variant price', true)!,
+        salePrice: parseMoney(v.salePrice, 'Variant sale price'),
+        stockQuantity: parseStock(v.stock, 'Variant stock'),
         isActive: v.isActive !== false,
         displayOrder: v.displayOrder || 0,
       })),
@@ -198,9 +224,27 @@ router.post('/', authenticateAdmin, requireRole('super_admin', 'admin', 'staff')
   });
 
   res.status(201).json(formatProduct(finalProduct!));
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : 'Unable to create product' });
+  }
+});
+
+router.get('/:id', authenticateAdmin, requireRole('super_admin', 'admin', 'staff'), async (req: AuthRequest, res) => {
+  const product = await prisma.product.findUnique({
+    where: { id: req.params.id },
+    include: {
+      category: { select: { name: true, slug: true } },
+      images: { orderBy: { displayOrder: 'asc' } },
+      variants: { orderBy: { displayOrder: 'asc' }, include: { optionValues: { include: { optionValue: { include: { option: true } } } } } },
+      options: { orderBy: { displayOrder: 'asc' }, include: { values: { orderBy: { displayOrder: 'asc' } } } },
+    },
+  });
+  if (!product) return res.status(404).json({ message: 'Product not found' });
+  res.json(formatProduct(product));
 });
 
 router.patch('/:id', authenticateAdmin, requireRole('super_admin', 'admin', 'staff'), async (req: AuthRequest, res) => {
+  try {
   const data: any = {};
   if (req.body.name !== undefined) data.name = req.body.name;
   if (req.body.category !== undefined) {
@@ -212,11 +256,11 @@ router.patch('/:id', authenticateAdmin, requireRole('super_admin', 'admin', 'sta
     const cat = await prisma.category.findFirst({ where: { slug: req.body.categorySlug } });
     if (cat) data.categoryId = cat.id;
   }
-  if (req.body.price !== undefined) data.basePrice = parseFloat(req.body.price);
-  if (req.body.basePrice !== undefined) data.basePrice = parseFloat(req.body.basePrice);
-  if (req.body.salePrice !== undefined) data.salePrice = req.body.salePrice ? parseFloat(req.body.salePrice) : null;
-  if (req.body.stock !== undefined) data.stockQuantity = parseInt(req.body.stock);
-  if (req.body.stockQuantity !== undefined) data.stockQuantity = parseInt(req.body.stockQuantity);
+  if (req.body.price !== undefined) data.basePrice = parseMoney(req.body.price, 'Base price', true);
+  if (req.body.basePrice !== undefined) data.basePrice = parseMoney(req.body.basePrice, 'Base price', true);
+  if (req.body.salePrice !== undefined) data.salePrice = parseMoney(req.body.salePrice, 'Sale price');
+  if (req.body.stock !== undefined) data.stockQuantity = parseStock(req.body.stock);
+  if (req.body.stockQuantity !== undefined) data.stockQuantity = parseStock(req.body.stockQuantity);
   if (req.body.description !== undefined) data.description = req.body.description;
   if (req.body.sku !== undefined) data.sku = req.body.sku;
   if (req.body.status === 'active') { data.isActive = true; data.isArchived = false; }
@@ -229,6 +273,15 @@ router.patch('/:id', authenticateAdmin, requireRole('super_admin', 'admin', 'sta
     const existing = await prisma.productImage.findFirst({ where: { productId: req.params.id, isPrimary: true } });
     if (existing) await prisma.productImage.update({ where: { id: existing.id }, data: { url: req.body.image } });
     else await prisma.productImage.create({ data: { productId: req.params.id, url: req.body.image, isPrimary: true } });
+  }
+  if (Array.isArray(req.body.images)) {
+    const imageUrls = req.body.images.filter((url: unknown): url is string => typeof url === 'string' && Boolean(url.trim()));
+    await prisma.productImage.deleteMany({ where: { productId: req.params.id } });
+    if (imageUrls.length > 0) {
+      await prisma.productImage.createMany({
+        data: imageUrls.map((url: string, index: number) => ({ productId: req.params.id, url, isPrimary: index === 0 })),
+      });
+    }
   }
 
   const product = await prisma.product.update({
@@ -273,9 +326,9 @@ router.patch('/:id', authenticateAdmin, requireRole('super_admin', 'admin', 'sta
       data: req.body.variants.map((v: any) => ({
         productId: req.params.id,
         sku: v.sku,
-        price: parseFloat(v.price || 0),
-        salePrice: v.salePrice ? parseFloat(v.salePrice) : null,
-        stockQuantity: parseInt(v.stock || 0),
+        price: parseMoney(v.price, 'Variant price', true)!,
+        salePrice: parseMoney(v.salePrice, 'Variant sale price'),
+        stockQuantity: parseStock(v.stock, 'Variant stock'),
         isActive: v.isActive !== false,
         displayOrder: v.displayOrder || 0,
       })),
@@ -328,6 +381,9 @@ router.patch('/:id', authenticateAdmin, requireRole('super_admin', 'admin', 'sta
   });
 
   res.json(formatProduct(updatedProduct!));
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : 'Unable to update product' });
+  }
 });
 
 router.patch('/:id/archive', authenticateAdmin, requireRole('super_admin', 'admin'), async (req: AuthRequest, res) => {

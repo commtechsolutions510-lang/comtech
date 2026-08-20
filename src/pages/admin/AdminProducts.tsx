@@ -29,6 +29,7 @@ interface ProductFormData {
   status: 'active' | 'inactive' | 'out_of_stock';
   featured: boolean;
   image: string;
+  images: string[];
   description: string;
   sku: string;
 }
@@ -59,6 +60,7 @@ const emptyForm: ProductFormData = {
   status: 'active',
   featured: false,
   image: '',
+  images: [],
   description: '',
   sku: '',
 };
@@ -151,10 +153,12 @@ export function AdminProducts() {
       status: product.status,
       featured: product.featured,
       image: product.image,
+      images: [],
       description: product.description,
       sku: '',
     });
     const detail = await adminApi.get<any>(`/products/${product.id}`);
+    setFormData(prev => ({ ...prev, images: (detail.images || []).map((image: any) => image.url) }));
     const opts: OptionForm[] = (detail.options || []).map((o: any) => ({
       id: o.id,
       name: o.name,
@@ -188,6 +192,7 @@ export function AdminProducts() {
         status: formData.status,
         featured: formData.featured,
         image: formData.image,
+        images: formData.images.filter(Boolean),
         description: formData.description,
         sku: formData.sku || undefined,
       };
@@ -378,14 +383,15 @@ export function AdminProducts() {
                 <th className="px-4 py-3">Variants</th>
                 <th className="px-4 py-3 cursor-pointer hover:bg-gray-100" onClick={() => toggleSort('stock')}>Stock <SortIcon field="stock" /></th>
                 <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Updated</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">Loading...</td></tr>
               ) : products?.data.length === 0 ? (
-                <tr><td colSpan={7} className="px-4 py-8 text-center text-gray-500">No products found</td></tr>
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-gray-500">No products found</td></tr>
               ) : (
                 products?.data.map((product) => (
                   <tr key={product.id} className="hover:bg-gray-50">
@@ -415,6 +421,7 @@ export function AdminProducts() {
                         {product.status.replace('_', ' ')}
                       </span>
                     </td>
+                    <td className="px-4 py-3 text-gray-600">{product.updatedAt ? new Date(product.updatedAt).toLocaleDateString() : '-'}</td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button onClick={() => openEditModal(product)} className="p-1.5 rounded hover:bg-gray-100 text-gray-600 hover:text-slate-900">
@@ -541,13 +548,24 @@ export function AdminProducts() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL</label>
-                  <input
-                    type="text"
-                    value={formData.image}
-                    onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">Product Images</label>
+                    <button type="button" onClick={() => setFormData({ ...formData, images: [...formData.images, ''] })} className="text-sm text-slate-900 font-medium hover:underline">+ Add Image URL</button>
+                  </div>
+                  <div className="space-y-2">
+                    {(formData.images.length ? formData.images : ['']).map((url, index) => (
+                      <div key={`${index}-${url}`} className="flex items-center gap-2">
+                        <input
+                          type="url"
+                          placeholder="https://..."
+                          value={url}
+                          onChange={(e) => setFormData({ ...formData, image: index === 0 ? e.target.value : formData.image, images: formData.images.length ? formData.images.map((item, itemIndex) => itemIndex === index ? e.target.value : item) : [e.target.value] })}
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+                        />
+                        {formData.images.length > 0 && <button type="button" onClick={() => setFormData({ ...formData, images: formData.images.filter((_, itemIndex) => itemIndex !== index) })} className="p-2 text-red-600 hover:bg-red-50 rounded-lg"><X className="w-4 h-4" /></button>}
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -650,7 +668,7 @@ export function AdminProducts() {
                 </div>
 
                 {/* Variants */}
-                {variants.length > 0 && (
+                {options.length > 0 && (
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <label className="block text-sm font-medium text-gray-700">Variants</label>
@@ -658,7 +676,11 @@ export function AdminProducts() {
                         <Settings2 className="w-4 h-4" /> Regenerate
                       </button>
                     </div>
-                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    {variants.length === 0 ? (
+                      <div className="border border-dashed border-gray-300 rounded-lg p-4 text-sm text-gray-500">
+                        Add at least one value to each option, then regenerate variants.
+                      </div>
+                    ) : <div className="border border-gray-200 rounded-lg overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead className="bg-gray-50 text-gray-500 font-medium">
@@ -745,7 +767,7 @@ export function AdminProducts() {
                           </tbody>
                         </table>
                       </div>
-                    </div>
+                    </div>}
                   </div>
                 )}
 

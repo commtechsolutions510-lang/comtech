@@ -85,7 +85,7 @@ export function Checkout() {
   }, []);
 
   const subtotal = items.reduce((sum, item) => {
-    const price = item.variant?.price ?? item.product.basePrice;
+    const price = item.variant?.salePrice || item.variant?.price || item.product.salePrice || item.product.basePrice;
     return sum + price * item.quantity;
   }, 0);
   const deliveryFee = deliveryInfo.method === 'delivery' ? (subtotal > 500 ? 0 : 25) : 0;

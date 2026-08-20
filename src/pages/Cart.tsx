@@ -9,7 +9,7 @@ import { useCart } from '../context/CartContext';
 export function Cart() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, refreshCart } = useCart();
+  const { isAuthenticated, refreshCart, items: guestItems } = useCart();
 
   useEffect(() => {
     setIsLoading(true);
@@ -20,10 +20,10 @@ export function Cart() {
         .catch(() => setItems([]))
         .finally(() => setIsLoading(false));
     } else {
-      setItems(useCart().items);
+      setItems(guestItems);
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, guestItems]);
 
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity < 1) return;
@@ -47,7 +47,7 @@ export function Cart() {
   };
 
   const subtotal = items.reduce((sum, item) => {
-    const price = item.variant?.price ?? item.product.basePrice;
+    const price = item.variant?.salePrice || item.variant?.price || item.product.salePrice || item.product.basePrice;
     return sum + price * item.quantity;
   }, 0);
 
@@ -101,7 +101,7 @@ export function Cart() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => {
-                const price = item.variant?.price ?? item.product.basePrice;
+                const price = item.variant?.salePrice || item.variant?.price || item.product.salePrice || item.product.basePrice;
                 const image = item.product.images?.[0]?.url || item.product.image;
                 return (
                   <motion.div

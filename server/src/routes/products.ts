@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
       basePrice: parseFloat(p.basePrice.toString()),
       salePrice: p.salePrice ? parseFloat(p.salePrice.toString()) : undefined,
       featured: p.isFeatured,
-      stockQuantity: p.stockQuantity,
+      stockQuantity: p.variants.length ? p.variants.reduce((total, variant) => total + variant.stockQuantity, 0) : p.stockQuantity,
       variants,
       images: p.images.map(img => ({ url: img.url, alt: img.alt || '', isPrimary: img.isPrimary })),
     };
@@ -121,7 +121,7 @@ router.get('/:slug', async (req, res) => {
     basePrice: parseFloat(product.basePrice.toString()),
     salePrice: product.salePrice ? parseFloat(product.salePrice.toString()) : undefined,
     featured: product.isFeatured,
-    stockQuantity: product.stockQuantity,
+    stockQuantity: product.variants.length ? product.variants.reduce((total, variant) => total + variant.stockQuantity, 0) : product.stockQuantity,
     variants,
     options,
     images: product.images.map(img => ({ url: img.url, alt: img.alt || '', isPrimary: img.isPrimary })),

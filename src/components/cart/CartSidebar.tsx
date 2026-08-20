@@ -12,7 +12,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
   const { items, updateQuantity, removeItem, isLoading } = useCart();
 
   const subtotal = items.reduce((sum, item) => {
-    const price = item.variant?.price ?? item.product.basePrice;
+    const price = item.variant?.salePrice || item.variant?.price || item.product.salePrice || item.product.basePrice;
     return sum + price * item.quantity;
   }, 0);
 
@@ -70,7 +70,7 @@ export function CartSidebar({ isOpen, onClose }: CartSidebarProps) {
               ) : (
                 <div className="space-y-6">
                   {items.map((item) => {
-                    const price = item.variant?.price ?? item.product.basePrice;
+                    const price = item.variant?.salePrice || item.variant?.price || item.product.salePrice || item.product.basePrice;
                     const image = item.product.images?.[0]?.url || item.product.image;
                     const variantLabel = item.variant?.optionValues?.map(ov => `${ov.option.name}: ${ov.value}`).join(', ') || '';
                     return (

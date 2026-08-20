@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { authenticateCustomer, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
@@ -7,6 +7,15 @@ const prisma = new PrismaClient();
 
 router.post('/', async (req: AuthRequest, res) => {
   const { items, deliveryMethod, deliveryFee, discountAmount, couponId, deliveryAddress, notes, customerEmail, customerName, customerPhone } = req.body;
+  if (!Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({ message: 'At least one order item is required' });
+  }
+
+  const deliveryFeeAmount = new Prisma.Decimal(deliveryFee || 0);
+  const discountAmountValue = new Prisma.Decimal(discountAmount || 0);
+  if (deliveryFeeAmount.isNegative() || discountAmountValue.isNegative()) {
+    return res.status(400).json({ message: 'Delivery fee and discount cannot be negative' });
+  }
   
   let customerId: string | undefined;
   let customerEmailFinal = customerEmail;
@@ -26,104 +35,104 @@ router.post('/', async (req: AuthRequest, res) => {
     }
   }
 
-  const productIds = items.map((i: any) => i.productId);
+  const productIds = [...new Set(items.map((i: any) => i.productId).filter(Boolean))];
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
     include: { variants: { include: { optionValues: { include: { optionValue: { include: { option: true } } } } } } },
   });
 
   const orderItems = items.map((item: any) => {
-    const product = products.find(p => p.id === item.productId)!;
-    const variant = product.variants.find(v => v.id === item.variantId);
-    const unitPrice = variant ? parseFloat(variant.price.toString()) : parseFloat(product.basePrice.toString());
+    const product = products.find(p => p.id === item.productId);
+    const quantity = Number(item.quantity);
+    if (!product || product.isArchived || !product.isActive) throw new Error('Product is unavailable');
+    if (!Number.isInteger(quantity) || quantity < 1) throw new Error('Invalid item quantity');
+    const variant = item.variantId ? product.variants.find(v => v.id === item.variantId) : undefined;
+    if (product.variants.length > 0 && !variant) throw new Error(`A variant is required for ${product.name}`);
+    if (variant && (!variant.isActive || variant.stockQuantity < quantity)) throw new Error(`Insufficient stock for ${product.name}`);
+    if (!variant && product.stockQuantity < quantity) throw new Error(`Insufficient stock for ${product.name}`);
+    const unitPriceDecimal = variant?.salePrice ?? variant?.price ?? product.salePrice ?? product.basePrice;
+    const unitPrice = new Prisma.Decimal(unitPriceDecimal);
     const variantLabel = variant?.optionValues.map(ov => `${ov.optionValue.option.name}: ${ov.optionValue.value}`).join(', ') || null;
     return {
       productId: product.id,
-      variantId: item.variantId,
+      variantId: variant?.id || null,
       productName: product.name,
       variantLabel,
-      quantity: item.quantity,
+      quantity,
       unitPrice,
-      subtotal: unitPrice * item.quantity,
+      subtotal: unitPrice.mul(quantity),
     };
   });
 
-  const subtotal = orderItems.reduce((sum, i) => sum + i.subtotal, 0);
-  const total = subtotal + parseFloat(deliveryFee) - parseFloat(discountAmount);
+  const subtotal = orderItems.reduce((sum, i) => sum.add(i.subtotal), new Prisma.Decimal(0));
+  const total = subtotal.add(deliveryFeeAmount).sub(discountAmountValue);
+  if (total.isNegative()) return res.status(400).json({ message: 'Order total cannot be negative' });
 
   const orderNumber = `COM-${new Date().getFullYear()}-${String(Date.now()).slice(-6)}`;
 
-  const order = await prisma.order.create({
-    data: {
-      orderNumber,
-      customerId,
-      customerEmail: customerEmailFinal,
-      customerPhone: customerPhoneFinal,
-      customerName: customerNameFinal,
-      deliveryMethod,
-      deliveryFee: parseFloat(deliveryFee),
-      discountAmount: parseFloat(discountAmount),
-      subtotal,
-      total,
-      deliveryAddress: deliveryAddress?.address,
-      deliveryRegion: deliveryAddress?.region,
-      deliveryCity: deliveryAddress?.city,
-      deliveryArea: deliveryAddress?.area,
-      deliveryPhone: deliveryAddress?.contactPhone,
-      deliveryNotes: deliveryAddress?.additional,
-      notes,
-      items: { create: orderItems },
-      payments: { create: { amount: total, method: 'paystack', status: 'pending' } },
-    },
-    include: { items: true, payments: true },
-  });
+  try {
+    const order = await prisma.$transaction(async (tx) => {
+      for (const item of orderItems) {
+        if (item.variantId) {
+          const updated = await tx.productVariant.updateMany({
+            where: { id: item.variantId, isActive: true, stockQuantity: { gte: item.quantity } },
+            data: { stockQuantity: { decrement: item.quantity } },
+          });
+          if (updated.count !== 1) throw new Error(`Insufficient stock for ${item.productName}`);
+        } else {
+          const updated = await tx.product.updateMany({
+            where: { id: item.productId, isActive: true, isArchived: false, stockQuantity: { gte: item.quantity } },
+            data: { stockQuantity: { decrement: item.quantity } },
+          });
+          if (updated.count !== 1) throw new Error(`Insufficient stock for ${item.productName}`);
+        }
+      }
 
-  for (const item of orderItems) {
-    if (item.variantId) {
-      const variant = products.find(p => p.id === item.productId)?.variants.find(v => v.id === item.variantId);
-      if (variant && variant.stockQuantity >= item.quantity) {
-        await prisma.productVariant.update({
-          where: { id: variant.id },
-          data: { stockQuantity: { decrement: item.quantity } },
-        });
-        await prisma.inventoryTransaction.create({
+      const created = await tx.order.create({
+        data: {
+          orderNumber,
+          customerId,
+          customerEmail: customerEmailFinal,
+          customerPhone: customerPhoneFinal,
+          customerName: customerNameFinal,
+          deliveryMethod,
+          deliveryFee: deliveryFeeAmount,
+          discountAmount: discountAmountValue,
+          subtotal,
+          total,
+          deliveryAddress: deliveryAddress?.address,
+          deliveryRegion: deliveryAddress?.region,
+          deliveryCity: deliveryAddress?.city,
+          deliveryArea: deliveryAddress?.area,
+          deliveryPhone: deliveryAddress?.contactPhone,
+          deliveryNotes: deliveryAddress?.additional,
+          notes,
+          items: { create: orderItems },
+          payments: { create: { amount: total, method: 'paystack', status: 'pending' } },
+        },
+        include: { items: true, payments: true },
+      });
+
+      for (const item of orderItems) {
+        await tx.inventoryTransaction.create({
           data: {
             productId: item.productId,
             variantId: item.variantId,
             type: 'sale',
             quantity: -item.quantity,
             reason: `Order ${orderNumber}`,
-            referenceId: order.id,
+            referenceId: created.id,
             createdBy: customerId || 'guest',
           },
         });
       }
-    } else {
-      const product = products.find(p => p.id === item.productId);
-      if (product && product.stockQuantity >= item.quantity) {
-        await prisma.product.update({
-          where: { id: product.id },
-          data: { stockQuantity: { decrement: item.quantity } },
-        });
-        await prisma.inventoryTransaction.create({
-          data: {
-            productId: item.productId,
-            type: 'sale',
-            quantity: -item.quantity,
-            reason: `Order ${orderNumber}`,
-            referenceId: order.id,
-            createdBy: customerId || 'guest',
-          },
-        });
-      }
-    }
+      if (customerId) await tx.cartItem.deleteMany({ where: { customerId } });
+      return created;
+    });
+    res.status(201).json(order);
+  } catch (error) {
+    res.status(400).json({ message: error instanceof Error ? error.message : 'Unable to create order' });
   }
-
-  if (customerId) {
-    await prisma.cartItem.deleteMany({ where: { customerId } });
-  }
-
-  res.status(201).json(order);
 });
 
 router.get('/', authenticateCustomer, async (req: AuthRequest, res) => {

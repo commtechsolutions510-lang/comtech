@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
-import type { CartItem } from '../types';
+import type { CartItem, Product, ProductVariant } from '../types';
 import { api } from '../lib/api';
 
 interface CartContextValue {
@@ -9,7 +9,7 @@ interface CartContextValue {
   isCartOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (productId: string, variantId?: string, quantity?: number) => Promise<void>;
+  addItem: (productId: string, variantId?: string, quantity?: number, product?: Product, variant?: ProductVariant) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   refreshCart: () => Promise<void>;
@@ -63,7 +63,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     refreshCart();
   }, [refreshCart]);
 
-  const addItem = async (productId: string, variantId?: string, quantity = 1) => {
+  const addItem = async (productId: string, variantId?: string, quantity = 1, product?: Product, variant?: ProductVariant) => {
     const token = localStorage.getItem('customer_token');
     if (!token) {
       const guestItems = getGuestCart();
@@ -71,7 +71,32 @@ export function CartProvider({ children }: { children: ReactNode }) {
       if (existing) {
         existing.quantity += quantity;
       } else {
-        guestItems.push({ id: `guest-${Date.now()}`, productId, variantId, quantity, product: {} as any, variant: undefined });
+        guestItems.push({
+          id: `guest-${Date.now()}`,
+          productId,
+          variantId,
+          quantity,
+          product: product ? {
+            id: product.id,
+            name: product.name,
+            slug: product.slug,
+            image: product.image,
+            basePrice: product.basePrice || 0,
+            salePrice: product.salePrice,
+            stockQuantity: product.stockQuantity || 0,
+            category: { name: product.category },
+            images: (product.images || []).map(image => ({ url: image.url })),
+          } : {} as any,
+          variant: variant ? {
+            id: variant.id || variantId || '',
+            price: variant.price || 0,
+            salePrice: variant.salePrice,
+            stockQuantity: variant.stock || 0,
+            sku: variant.sku || '',
+            isActive: variant.isActive !== false,
+            optionValues: variant.optionValues || [],
+          } : undefined,
+        });
       }
       setGuestCart(guestItems);
       setItems(guestItems);

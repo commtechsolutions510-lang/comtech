@@ -50,35 +50,68 @@ router.get('/', authenticateCustomer, async (req: AuthRequest, res) => {
 
 router.post('/', authenticateCustomer, async (req: AuthRequest, res) => {
   const { productId, variantId, quantity = 1 } = req.body;
-  const product = await prisma.product.findUnique({ where: { id: productId } });
-  if (!product || product.isArchived) return res.status(404).json({ message: 'Product not found' });
+  const requestedQuantity = Number(quantity);
+  if (!productId || !Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+    return res.status(400).json({ message: 'A valid product and positive integer quantity are required' });
+  }
+
+  const product = await prisma.product.findUnique({
+    where: { id: productId },
+    include: { variants: true },
+  });
+  if (!product || product.isArchived || !product.isActive) return res.status(404).json({ message: 'Product not found' });
+
+  const hasVariants = product.variants.length > 0;
+  const variant = variantId ? product.variants.find(item => item.id === variantId) : undefined;
+  if (hasVariants && !variant) return res.status(400).json({ message: 'A valid product variant is required' });
+  if (variant && (!variant.isActive || variant.stockQuantity < requestedQuantity)) {
+    return res.status(400).json({ message: 'The selected variant is unavailable or has insufficient stock' });
+  }
+  if (!variant && product.stockQuantity < requestedQuantity) {
+    return res.status(400).json({ message: 'Insufficient stock' });
+  }
 
   const existing = await prisma.cartItem.findFirst({
-    where: { customerId: req.userId!, productId, variantId: variantId || '' },
+    where: { customerId: req.userId!, productId, variantId: variantId || null },
   });
 
   if (existing) {
+    const availableStock = variant?.stockQuantity ?? product.stockQuantity;
+    if (existing.quantity + requestedQuantity > availableStock) {
+      return res.status(400).json({ message: 'Requested quantity exceeds available stock' });
+    }
     const updated = await prisma.cartItem.update({
       where: { id: existing.id },
-      data: { quantity: existing.quantity + quantity },
+      data: { quantity: existing.quantity + requestedQuantity },
     });
     return res.json(updated);
   }
 
   const item = await prisma.cartItem.create({
-    data: { customerId: req.userId!, productId, variantId, quantity },
+    data: { customerId: req.userId!, productId, variantId: variantId || null, quantity: requestedQuantity },
   });
   res.status(201).json(item);
 });
 
 router.patch('/:id', authenticateCustomer, async (req: AuthRequest, res) => {
   const { quantity } = req.body;
+  const requestedQuantity = Number(quantity);
+  if (!Number.isInteger(requestedQuantity) || requestedQuantity < 1) {
+    return res.status(400).json({ message: 'Quantity must be a positive integer' });
+  }
   const item = await prisma.cartItem.findFirst({ where: { id: req.params.id, customerId: req.userId! } });
   if (!item) return res.status(404).json({ message: 'Cart item not found' });
 
+  const stock = item.variantId
+    ? await prisma.productVariant.findUnique({ where: { id: item.variantId }, select: { stockQuantity: true, isActive: true } })
+    : await prisma.product.findUnique({ where: { id: item.productId }, select: { stockQuantity: true, isActive: true } });
+  if (!stock?.isActive || requestedQuantity > stock.stockQuantity) {
+    return res.status(400).json({ message: 'Requested quantity exceeds available stock' });
+  }
+
   const updated = await prisma.cartItem.update({
     where: { id: item.id },
-    data: { quantity },
+    data: { quantity: requestedQuantity },
   });
   res.json(updated);
 });

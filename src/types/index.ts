@@ -238,7 +238,9 @@ export interface AdminProduct {
   featured: boolean;
   image: string;
   description: string;
+  sku?: string;
   createdAt: string;
+  updatedAt?: string;
   variants?: ProductVariant[];
   options?: { id: string; name: string; values: { id: string; value: string }[] }[];
 }
