@@ -9,7 +9,7 @@ import { useCart } from '../context/CartContext';
 export function Cart() {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { isAuthenticated, refreshCart, items: guestItems } = useCart();
+  const { isAuthenticated, refreshCart, items: guestItems, updateQuantity: updateCartQuantity, removeItem: removeCartItem } = useCart();
 
   useEffect(() => {
     setIsLoading(true);
@@ -28,7 +28,11 @@ export function Cart() {
   const updateQuantity = async (itemId: string, quantity: number) => {
     if (quantity < 1) return;
     try {
-      await api.patch(`/cart/${itemId}`, { quantity });
+      if (!localStorage.getItem('customer_token')) {
+        await updateCartQuantity(itemId, quantity);
+      } else {
+        await api.patch(`/cart/${itemId}`, { quantity });
+      }
       setItems((prev) => prev.map((item) => (item.id === itemId ? { ...item, quantity } : item)));
       refreshCart();
     } catch {
@@ -38,7 +42,11 @@ export function Cart() {
 
   const removeItem = async (itemId: string) => {
     try {
-      await api.delete(`/cart/${itemId}`);
+      if (!localStorage.getItem('customer_token')) {
+        await removeCartItem(itemId);
+      } else {
+        await api.delete(`/cart/${itemId}`);
+      }
       setItems((prev) => prev.filter((item) => item.id !== itemId));
       refreshCart();
     } catch {
