@@ -43,6 +43,7 @@ app.use('/api/settings', settingsRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/admin/upload', uploadRoutes);
 app.use('/api/upload', uploadRoutes);
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));

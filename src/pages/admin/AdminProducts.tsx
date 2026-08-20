@@ -84,6 +84,7 @@ export function AdminProducts() {
   const [options, setOptions] = useState<OptionForm[]>([]);
   const [variants, setVariants] = useState<VariantForm[]>([]);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const fetchProducts = useCallback(async () => {
     setLoading(true);
@@ -238,6 +239,20 @@ export function AdminProducts() {
       alert(err instanceof Error ? err.message : 'Failed to save product');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (files: FileList | null) => {
+    if (!files?.length) return;
+    setUploadingImage(true);
+    try {
+      const uploaded = await Promise.all(Array.from(files).map(file => adminApi.upload<{ url: string }>(file)));
+      const urls = uploaded.map(result => result.url);
+      setFormData(prev => ({ ...prev, image: prev.image || urls[0], images: [...prev.images, ...urls] }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Image upload failed');
+    } finally {
+      setUploadingImage(false);
     }
   };
 
@@ -552,6 +567,15 @@ export function AdminProducts() {
                     <label className="block text-sm font-medium text-gray-700">Product Images</label>
                     <button type="button" onClick={() => setFormData({ ...formData, images: [...formData.images, ''] })} className="text-sm text-slate-900 font-medium hover:underline">+ Add Image URL</button>
                   </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/avif"
+                    multiple
+                    disabled={uploadingImage}
+                    onChange={(e) => { void handleImageUpload(e.target.files); e.currentTarget.value = ''; }}
+                    className="w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Choose one or more images from your device, up to 5 MB each.</p>
                   <div className="space-y-2">
                     {(formData.images.length ? formData.images : ['']).map((url, index) => (
                       <div key={`${index}-${url}`} className="flex items-center gap-2">

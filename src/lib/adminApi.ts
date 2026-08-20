@@ -1,4 +1,5 @@
 const ADMIN_API_URL = `${import.meta.env.VITE_API_URL || 'http://localhost:4000/api'}/admin`;
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000/api';
 
 async function adminRequest(endpoint: string, options: RequestInit = {}) {
   const token = localStorage.getItem('admin_token');
@@ -33,4 +34,24 @@ export const adminApi = {
     adminRequest(endpoint, { method: 'PATCH', body: JSON.stringify(data) }),
   delete: <T = any>(endpoint: string): Promise<T> =>
     adminRequest(endpoint, { method: 'DELETE' }),
+  upload: async <T = { url: string }>(file: File): Promise<T> => {
+    const token = localStorage.getItem('admin_token');
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await fetch(`${ADMIN_API_URL}/upload`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      body: formData,
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Image upload failed' }));
+      throw new Error(error.message || 'Image upload failed');
+    }
+    const result = await response.json() as T;
+    const uploadResult = result as T & { url?: string };
+    if (uploadResult.url?.startsWith('/')) {
+      uploadResult.url = `${new URL(API_URL).origin}${uploadResult.url}`;
+    }
+    return result;
+  },
 };

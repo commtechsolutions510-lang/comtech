@@ -17,6 +17,8 @@ services:
         generateValue: true
       - key: FRONTEND_URL
         value: https://commtechsolutions-frontend.onrender.com
+      - key: PUBLIC_API_URL
+        value: https://commtechsolutions-backend.onrender.com
       - key: PAYSTACK_PUBLIC_KEY
         sync: false
       - key: PAYSTACK_SECRET_KEY
@@ -25,6 +27,10 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
+    disk:
+      name: commtech-uploads
+      mountPath: /opt/render/project/src/server/uploads
+      sizeGB: 1
 
   - type: web
     name: commtechsolutions-frontend

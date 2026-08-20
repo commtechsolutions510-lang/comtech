@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Edit2, Trash2, X, Save, Image as ImageIcon } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { adminApi } from '../../lib/adminApi';
 import type { AdminCategory } from '../../types';
 
@@ -28,6 +28,7 @@ export function AdminCategories() {
   const [editingCategory, setEditingCategory] = useState<AdminCategory | null>(null);
   const [formData, setFormData] = useState<CategoryFormData>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   const fetchCategories = async () => {
     setLoading(true);
@@ -79,6 +80,18 @@ export function AdminCategories() {
       alert(err instanceof Error ? err.message : 'Failed to save category');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setUploading(true);
+    try {
+      const result = await adminApi.upload(file);
+      setFormData(prev => ({ ...prev, image: result.url }));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Image upload failed');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -212,11 +225,11 @@ export function AdminCategories() {
                     <input type="text" value={formData.icon} onChange={(e) => setFormData({ ...formData, icon: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500" />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Image</label>
-                    <div className="relative">
-                      <input type="text" value={formData.image} onChange={(e) => setFormData({ ...formData, image: e.target.value })} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-slate-500 focus:border-slate-500" />
-                      <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    </div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Category Image</label>
+                    <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif" disabled={uploading} onChange={(e) => { const file = e.target.files?.[0]; if (file) handleImageUpload(file); }} className="w-full text-sm text-gray-600 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-slate-800" />
+                    <p className="mt-1 text-xs text-gray-500">PNG, JPG, WEBP, GIF or AVIF up to 5 MB</p>
+                    {formData.image && <img src={formData.image} alt="Category preview" className="mt-2 h-16 w-full rounded-lg object-cover" />}
+                    <input type="hidden" value={formData.image} readOnly />
                   </div>
                 </div>
                 <button type="submit" disabled={saving} className="w-full flex items-center justify-center gap-2 py-2.5 bg-slate-900 text-white font-semibold rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50">
