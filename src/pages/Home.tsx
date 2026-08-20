@@ -265,10 +265,20 @@ export function Home() {
                 Visit any of our retail outlets or get in touch with us to explore our full catalogue.
               </p>
               <div className="mt-8 flex flex-col sm:flex-row gap-4">
-                <WhatsAppButton phone={company?.whatsapp || ''} variant="secondary">
+                <WhatsAppButton
+                  phone={company?.whatsapp || ''}
+                  variant="primary"
+                  size="lg"
+                  className="!border-2 !border-[#25D366] !bg-[#25D366] !text-white hover:!border-[#1ebe5d] hover:!bg-[#1ebe5d] shadow-lg"
+                >
                   Chat on WhatsApp
                 </WhatsAppButton>
-                <Button to="/locations" variant="outline" size="lg" className="border-white text-white hover:bg-white/10">
+                <Button
+                  to="/locations"
+                  variant="outline"
+                  size="lg"
+                  className="!border-2 !border-white !bg-white !text-[#0B1F3A] hover:!bg-[#EAF2FF] shadow-lg"
+                >
                   Find a Location
                 </Button>
               </div>

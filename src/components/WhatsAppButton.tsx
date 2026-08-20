@@ -29,12 +29,8 @@ export function WhatsAppButton({
       external
       className={className}
     >
-      {children || (
-        <>
-          <MessageCircle className="w-4 h-4 mr-2" />
-          Chat on WhatsApp
-        </>
-      )}
+      <MessageCircle className="w-4 h-4 mr-2" />
+      {children || 'Chat on WhatsApp'}
     </Button>
   );
 }
