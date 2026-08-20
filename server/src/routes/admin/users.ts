@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { authenticateAdmin, requireRole, AuthRequest } from '../../middleware/auth';
+import { authenticateAdmin, requireRole, AuthRequest } from '../../middleware/auth.js';
 
 const router = Router();
 const prisma = new PrismaClient();
